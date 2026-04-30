@@ -1,5 +1,0 @@
-Klingelton 1|Sounds/Klingeltöne/Alarm.mp3
-
-Klingelton 2|Sounds/Klingeltöne/Wecker.mp3
-
-Musik 1|Sounds/Hintergrungmusik/Elevator Music.mp3
