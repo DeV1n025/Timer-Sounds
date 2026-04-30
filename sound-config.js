@@ -1,6 +1,6 @@
 window.SOUND_CONFIG = {
     alarmSounds: [
-        { label: 'Alarm 10', path: 'alarm.mp3' },
+        { label: 'Alarm 10', path: 'https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/main/alarm.mp3' },
         { label: 'Alarm 277', path: 'liftmu 2.mp3' },
         { label: 'Alarm 676767', path: 'mukke 2.mp3' }
     ],
