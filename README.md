@@ -1,0 +1,16 @@
+Klingeltöne:
+Alarm 1:
+\\192.168.1.10\Vincenzo\Dokumente\Programme eigene\Timer mit Hintergrundmusik\Sounds\Klingeltöne\Alarm.mp3
+
+Alarm 2:
+\\192.168.1.10\Vincenzo\Dokumente\Programme eigene\Timer mit Hintergrundmusik\Sounds\Klingeltöne\Homecoming.mp3
+
+
+
+
+Hintergrundmusik:
+Musik 1:
+\\192.168.1.10\Vincenzo\Dokumente\Programme eigene\Timer mit Hintergrundmusik\Sounds\Hintergrungmusik\Kahoot Lobby theme song.mp3
+
+Musik 2
+\\192.168.1.10\Vincenzo\Dokumente\Programme eigene\Timer mit Hintergrundmusik\Sounds\Hintergrungmusik\Elevator Music klein.mp3
