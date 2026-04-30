@@ -3,11 +3,11 @@
 # Pfad kann eine URL oder lokaler Dateipfad sein
 
 # Klingeltöne
-Klingelton 1|Sounds/Klingeltöne/Alarm.mp3
-Klingelton 2|Sounds/Klingeltöne/Wecker.mp3
-Klingelton 3|Sounds/Klingeltöne/Schulgong.mp3
-Klingelton 4|Sounds/Klingeltöne/NOKIA Tune.mp3
-Klingelton 5|Sounds/Klingeltöne/Morning Flower.mp3
+Klingelton 1|\\192.168.1.10\Vincenzo\Dokumente\Programme eigene\Timer mit Hintergrundmusik\Sounds\Klingeltöne\Alarm.mp3
+Klingelton 2|\\192.168.1.10\Vincenzo\Dokumente\Programme eigene\Timer mit Hintergrundmusik\Sounds\Klingeltöne\Wecker.mp3
+Klingelton 3|\\192.168.1.10\Vincenzo\Dokumente\Programme eigene\Timer mit Hintergrundmusik\Sounds\Klingeltöne\Schulgong.mp3
+Klingelton 4|\\192.168.1.10\Vincenzo\Dokumente\Programme eigene\Timer mit Hintergrundmusik\Sounds\Klingeltöne\NOKIA Tune.mp3
+Klingelton 5|\\192.168.1.10\Vincenzo\Dokumente\Programme eigene\Timer mit Hintergrundmusik\Sounds\Klingeltöne\Morning Flower.mp3
 
 # Hintergrundmusik
 Musik 1|Sounds/Hintergrungmusik/Elevator Music.mp3
