@@ -1,16 +1,5 @@
-# Konfigurationsdatei für Klingeltöne und Hintergrundmusik
-# Format: Name|Pfad
-# Pfad kann eine URL oder lokaler Dateipfad sein
+Klingelton 1|Sounds/Klingeltöne/Alarm.mp3
 
-# Klingeltöne
-Klingelton 1|\\192.168.1.10\Vincenzo\Dokumente\Programme eigene\Timer mit Hintergrundmusik\Sounds\Klingeltöne\Alarm.mp3
-Klingelton 2|\\192.168.1.10\Vincenzo\Dokumente\Programme eigene\Timer mit Hintergrundmusik\Sounds\Klingeltöne\Wecker.mp3
-Klingelton 3|\\192.168.1.10\Vincenzo\Dokumente\Programme eigene\Timer mit Hintergrundmusik\Sounds\Klingeltöne\Schulgong.mp3
-Klingelton 4|\\192.168.1.10\Vincenzo\Dokumente\Programme eigene\Timer mit Hintergrundmusik\Sounds\Klingeltöne\NOKIA Tune.mp3
-Klingelton 5|\\192.168.1.10\Vincenzo\Dokumente\Programme eigene\Timer mit Hintergrundmusik\Sounds\Klingeltöne\Morning Flower.mp3
+Klingelton 2|Sounds/Klingeltöne/Wecker.mp3
 
-# Hintergrundmusik
 Musik 1|Sounds/Hintergrungmusik/Elevator Music.mp3
-Musik 2|Sounds/Hintergrungmusik/Elevator Music Jazz.mp3
-Musik 3|Sounds/Hintergrungmusik/Kahoot Lobby theme song.mp3
-Musik 4|Sounds/Hintergrungmusik/Kahoot Answer/Answer030 Original.mp3
