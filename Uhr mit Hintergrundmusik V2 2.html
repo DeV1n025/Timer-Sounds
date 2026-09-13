@@ -1,0 +1,3310 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uhr</title>
+    <link href="https://fonts.cdnfonts.com/css/digital-7-mono" rel="stylesheet">
+    <link id="favicon" rel="icon" type="image/png" href="data:,">
+    <style>
+        * {
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px 20px 110px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: Arial, sans-serif;
+            overflow-x: hidden;
+            overflow-y: hidden;
+            gap: 15px;
+        }
+        :root {
+            --ui-scale: 1; /* set via settings with setUiScale(scale) */
+            --element-gap: calc(6px * var(--ui-scale));
+            --button-bg: #667eea;
+            --button-hover: #764ba2;
+            --button-bg-dark: #4a5a9e;
+            --button-hover-dark: #5a3a7a;
+            --control-height: calc(36px * var(--ui-scale));
+            --button-min-height: calc(42px * var(--ui-scale));
+        }
+        .toolbar-title,
+        .toolbar-title *,
+        .help-dialog-body,
+        .help-dialog-body *,
+        .help-dialog,
+        .help-dialog *,
+        .music-hint,
+        .music-hint *,
+        .error-message,
+        .error-message *,
+        .timezone-label,
+        .timezone-label * {
+            -webkit-user-select: text;
+            user-select: text;
+            -webkit-touch-callout: default;
+        }
+        body.scroll-enabled {
+            overflow-y: auto;
+        }
+        .container {
+            text-align: center;
+            position: relative;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            width: fit-content;
+            min-width: 150px;
+            max-width: none;
+            flex: 0 0 auto;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100px;
+            height: auto;
+            transition: none;
+            overflow: visible;
+        }
+        #inputTitle {
+            font-size: calc(20px * var(--ui-scale));
+            font-weight: 700;
+            margin: 0 0 var(--element-gap) 0;
+            cursor: text;
+            color: #556799;
+            width: 100%;
+            text-align: center;
+            padding: 8px 6px;
+        }
+        .inputTitle {
+            font-size: calc(20px * var(--ui-scale));
+            font-weight: 700;
+            margin: 0 0 var(--element-gap) 0;
+            cursor: text;
+            color: #556799;
+            width: 100%;
+            text-align: center;
+            padding: 8px 6px;
+        }
+        #inputTitleEdit {
+            height: calc(var(--control-height) + 2px * var(--ui-scale));
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0 10px;
+            margin-bottom: calc(8px * var(--ui-scale));
+            font-size: calc(15px * var(--ui-scale));
+            line-height: var(--control-height);
+        }
+        .title-edit-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .title-edit-row input {
+            flex: 1 1 auto;
+            height: var(--control-height);
+            padding: 0 10px;
+            box-sizing: border-box;
+            line-height: var(--control-height);
+            display: inline-flex;
+            align-items: center;
+            font-size: calc(14px * var(--ui-scale));
+        }
+        #inputTitleSaveBtn {
+            height: var(--control-height);
+            min-width: 40px;
+            padding: 0 8px;
+            border-radius: 5px;
+            background: #667eea;
+            color: white;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #inputTitleSaveBtn {
+            box-sizing: border-box;
+            padding: 0 calc(10px * var(--ui-scale));
+            line-height: var(--control-height);
+            font-size: calc(14px * var(--ui-scale));
+            height: var(--control-height);
+            min-height: var(--control-height);
+            vertical-align: middle;
+            align-self: center;
+        }
+        #inputTitleSaveBtn:hover {
+            background: #764ba2;
+        }
+        body.dark-mode #inputTitleSaveBtn:hover {
+            background: var(--button-hover-dark);
+        }
+        body.dark-mode #inputTitleSaveBtn {
+            background: var(--button-bg-dark);
+        }
+        #inputTitleSaveBtn:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(118,75,162,0.22);
+        }
+        /* apply same styles to per-clock save buttons inside the title edit row */
+        .title-edit-row > button {
+            height: var(--control-height);
+            min-width: 40px;
+            padding: 0 8px;
+            border-radius: 5px;
+            background: #667eea;
+            color: white;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            box-sizing: border-box;
+            padding: 0 calc(10px * var(--ui-scale));
+            line-height: var(--control-height);
+            font-size: calc(14px * var(--ui-scale));
+            height: var(--control-height);
+            min-height: var(--control-height);
+            vertical-align: middle;
+            align-self: center;
+        }
+        /* Force exact alignment with input field */
+        .title-edit-row > #inputTitleSaveBtn {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            height: var(--control-height) !important;
+            line-height: var(--control-height) !important;
+            padding: 0 calc(10px * var(--ui-scale)) !important;
+            box-sizing: border-box !important;
+            margin: 0 !important;
+            transform: none !important;
+        }
+        .clock-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: start;
+            gap: 20px;
+            width: min(100%, 1500px);
+            margin-top: 90px;
+            padding-bottom: 70px;
+            transition: none;
+        }
+        #clockContainer {
+            margin: 0;
+            width: auto;
+            min-width: 280px;
+        }
+        .add-clock-btn {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2147483647;
+            padding: 12px 20px;
+            margin: 0;
+            font-size: 15px;
+            font-weight: bold;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            border-radius: 999px;
+        }
+        .clock-close-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 26px;
+            height: 26px;
+            margin: 0;
+            padding: 0;
+            border-radius: 50%;
+            font-size: 16px;
+            line-height: 1;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 2;
+            opacity: 0.28;
+            background: transparent;
+            color: #444;
+            transition: opacity 0.2s ease, background 0.2s ease;
+        }
+        .clock-close-btn:hover {
+            opacity: 1;
+            background: rgba(0, 0, 0, 0.08);
+        }
+        body.dark-mode .clock-close-btn {
+            color: #d9d9d9;
+        }
+        body.dark-mode .clock-close-btn:hover {
+            background: rgba(255, 255, 255, 0.14);
+        }
+        .toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background: #d0d0d0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 2147483647;
+        }
+        .toolbar-title {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            font-family: Arial, sans-serif;
+            white-space: nowrap;
+            line-height: 1.1;
+            cursor: pointer;
+        }
+        body.dark-mode .toolbar-title {
+            color: #e0e0e0;
+        }
+        body.dark-mode .toolbar {
+            background: #1e1e2f;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
+        }
+
+        .darkmode-btn {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 0;
+            margin: 0;
+            width: 40px;
+            height: 36px;
+            font-size: 18px;
+            line-height: 1;
+            background: #d0d0d0;
+            color: #333;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            cursor: pointer;
+            opacity: 1;
+            transition: background 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .darkmode-btn:hover {
+            background: #b8b8b8;
+        }
+        body.dark-mode .darkmode-btn {
+            background: #1e1e2f;
+            color: #e0e0e0;
+            border: 2px solid #4a5a9e;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+        body.dark-mode .darkmode-btn:hover {
+            background: #2a2a3f;
+        }
+        .settings-toggle-btn {
+            position: absolute;
+            right: 70px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 0;
+            margin: 0;
+            width: 40px;
+            height: 36px;
+            font-size: 18px;
+            line-height: 1;
+            background: #d0d0d0;
+            color: #333;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            cursor: pointer;
+            opacity: 1;
+            transition: background 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .settings-toggle-btn:hover {
+            background: #b8b8b8;
+        }
+        .help-btn {
+            position: absolute;
+            right: 125px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 0;
+            margin: 0;
+            width: 40px;
+            height: 36px;
+            font-size: 18px;
+            line-height: 1;
+            background: #d0d0d0;
+            color: #333;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            cursor: pointer;
+            opacity: 1;
+            transition: background 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-style: italic;
+            font-weight: bold;
+        }
+        .help-btn:hover {
+            background: #b8b8b8;
+        }
+        #helpBtn {
+            right: 180px;
+        }
+        #languageToggleBtn {
+            right: 125px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+        body.dark-mode .help-btn {
+            background: #1e1e2f;
+            color: #e0e0e0;
+            border: 2px solid #4a5a9e;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+        body.dark-mode .help-btn:hover {
+            background: #2a2a3f;
+        }
+        .help-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 2147483647;
+            box-sizing: border-box;
+        }
+        .help-overlay.visible {
+            display: flex;
+        }
+        .help-dialog {
+            width: min(680px, 100%);
+            max-height: min(82vh, 760px);
+            overflow: auto;
+            background: #ffffff;
+            color: #222;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(102, 126, 234, 0.35);
+            padding: 20px 20px 18px;
+            box-sizing: border-box;
+        }
+        body.dark-mode .help-dialog {
+            background: #1e1e2f;
+            color: #e8e8f0;
+            border-color: rgba(128, 146, 234, 0.45);
+        }
+        .help-dialog-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+        .help-dialog-title {
+            margin: 0;
+            font-size: clamp(20px, 4vw, 28px);
+            line-height: 1.15;
+        }
+        .help-dialog-close {
+            width: 36px;
+            height: 36px;
+            flex: 0 0 36px;
+            border-radius: 50%;
+            border: 1px solid rgba(102, 126, 234, 0.45);
+            background: #eef1ff;
+            color: #334;
+            font-size: 22px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin: 0;
+        }
+        .help-dialog-close:hover {
+            background: #dfe5ff;
+        }
+        body.dark-mode .help-dialog-close {
+            background: #2a2a3f;
+            color: #e8e8f0;
+            border-color: rgba(128, 146, 234, 0.55);
+        }
+        body.dark-mode .help-dialog-close:hover {
+            background: #353553;
+        }
+        .help-dialog-body {
+            display: grid;
+            gap: 14px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+        .help-dialog-body h3 {
+            margin: 0 0 6px 0;
+            font-size: 17px;
+        }
+        .help-dialog-body p,
+        .help-dialog-body ul {
+            margin: 0;
+        }
+        .help-dialog-body ul {
+            padding-left: 20px;
+        }
+        .help-dialog-body li + li {
+            margin-top: 4px;
+        }
+        body.dark-mode .settings-toggle-btn {
+            background: #1e1e2f;
+            color: #e0e0e0;
+            border: 2px solid #4a5a9e;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+        body.dark-mode .settings-toggle-btn:hover {
+            background: #2a2a3f;
+        }
+        .toolbar .settings-toggle-btn,
+        .toolbar .help-btn,
+        .toolbar .darkmode-btn {
+            width: 34px !important;
+            height: 32px !important;
+            min-height: 32px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .toolbar-nav {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            gap: 6px;
+            max-width: calc(100vw - 220px);
+            z-index: 6;
+        }
+        .toolbar-nav-btn {
+            margin: 0;
+            padding: 6px 10px;
+            min-height: 32px;
+            font-size: 13px;
+            line-height: 1;
+            border: 1px solid #8f8f8f;
+            border-radius: 6px;
+            background: #ececec;
+            color: #333;
+            white-space: nowrap;
+        }
+        .toolbar-nav-btn:hover {
+            background: #d8d8d8;
+        }
+        .toolbar-nav-btn.active {
+            background: #667eea;
+            color: #fff;
+            border-color: #4f64c8;
+            font-weight: bold;
+        }
+        body.dark-mode .toolbar-nav-btn {
+            background: #2a2a3f;
+            color: #dcdcf0;
+            border-color: #4a5a9e;
+        }
+        body.dark-mode .toolbar-nav-btn:hover {
+            background: #353553;
+        }
+        body.dark-mode .toolbar-nav-btn.active {
+            background: #667eea;
+            color: #fff;
+            border-color: #8092ea;
+        }
+        .clock-display {
+            display: inline-flex;
+            justify-content: center;
+            align-items: baseline;
+            font-size: 150px;
+            font-weight: bolder;
+            color: #333;
+            margin: 15px 0;
+            letter-spacing: -2px;
+            font-family: 'Digital-7 Mono', sans-serif;
+            line-height: 1;
+            width: auto;
+            text-align: center;
+            width: auto;
+        }
+        .clock-period {
+            display: inline-flex;
+            align-items: flex-end;
+            margin-left: 6px;
+            font-size: 0.28em;
+            font-weight: 600;
+            font-family: Arial, sans-serif;
+            letter-spacing: 0;
+            line-height: 1;
+        }
+        .analog-clock-display {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            margin: 10px 0;
+            color: #333;
+        }
+        body.analog-mode .clock-display {
+            display: none;
+        }
+        body.analog-mode .analog-clock-display {
+            display: flex;
+        }
+        .analog-clock-face {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            border: 3px solid currentColor;
+            background: transparent;
+            box-shadow: none;
+        }
+        .analog-ticks {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .analog-ticks-minor {
+            background: repeating-conic-gradient(from -90deg, currentColor 0deg 0.55deg, transparent 0.55deg 6deg);
+            -webkit-mask: radial-gradient(circle, transparent 66%, #000 66%, #000 74%, transparent 74%);
+            mask: radial-gradient(circle, transparent 66%, #000 66%, #000 74%, transparent 74%);
+            opacity: 0.55;
+            z-index: 1;
+        }
+        .analog-ticks-major {
+            background: repeating-conic-gradient(from -90deg, currentColor 0deg 1.3deg, transparent 1.3deg 30deg);
+            -webkit-mask: radial-gradient(circle, transparent 63%, #000 63%, #000 74%, transparent 74%);
+            mask: radial-gradient(circle, transparent 63%, #000 63%, #000 74%, transparent 74%);
+            z-index: 1;
+        }
+        .analog-numbers {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 2;
+        }
+        .analog-number {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            font-family: Arial, sans-serif;
+            font-size: var(--analog-number-size, 13px);
+            font-weight: 600;
+            line-height: 1;
+            color: currentColor;
+        }
+        .analog-hand {
+            position: absolute;
+            left: 50%;
+            bottom: 50%;
+            transform-origin: 50% 100%;
+            transform: translateX(-50%) rotate(0deg);
+            border-radius: 999px;
+            z-index: 3;
+        }
+        .analog-hour {
+            width: var(--analog-hour-width, 10px);
+            height: 23%;
+            background: currentColor;
+            border: var(--analog-hand-border, 2px) solid #000;
+            box-sizing: border-box;
+        }
+        .analog-minute {
+            width: var(--analog-minute-width, 7px);
+            height: 34%;
+            background: currentColor;
+            border: var(--analog-hand-border, 2px) solid #000;
+            box-sizing: border-box;
+        }
+        .analog-second {
+            width: var(--analog-second-width, 2px);
+            height: 45%;
+            background: #d00000;
+        }
+        .analog-center {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            transform: translate(-50%, -50%);
+            z-index: 4;
+        }
+        .clock-display .seconds-separator {
+            animation: blink 1s step-end infinite;
+        }
+        .clock-display .seconds-separator.no-blink {
+            animation: none;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        .date-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #666;
+            margin-top: 5px;
+            font-family: Arial, sans-serif;
+            width: 100%;
+            text-align: center;
+        }
+        body.dark-mode .date-display {
+            color: #aaa;
+        }
+        .timezone-label {
+            font-size: 16px;
+            color: #888;
+            margin-top: 5px;
+            font-family: Arial, sans-serif;
+            width: 100%;
+            text-align: center;
+        }
+        body.dark-mode .timezone-label {
+            color: #777;
+        }
+
+        .btn-row {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+        }
+        input {
+            width: 85px;
+            padding: 8px;
+            font-size: 14px;
+            margin: 8px;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            text-align: center;
+        }
+        button {
+            padding: 10px 8px;
+            margin: 8px;
+            font-size: 14px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            text-align: center;
+        }
+        button:hover {
+            background: #764ba2;
+        }
+        .sound-panel {
+            background: #d0d0d0;
+            padding: 10px;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 190px;
+            position: fixed;
+            top: 75px;
+            right: 20px;
+            z-index: 12;
+            max-height: calc(100vh - 90px);
+            overflow-y: auto;
+            }
+            .sound-panel {
+                bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+                max-height: none;
+            }
+        /* Do not scale settings panel contents with global UI scale */
+        .sound-panel {
+            --ui-scale: 1 !important;
+        }
+        /* Lock spacing-related variables and common paddings/margins inside settings */
+        .sound-panel {
+            --element-gap: 6px !important;
+            --control-height: 36px !important;
+            --button-min-height: 42px !important;
+            padding: 10px !important;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+            gap: 6px !important;
+        }
+        .sound-panel .panel-header { padding: 5px !important; }
+        .sound-panel .panel-header h2 { font-size: 18px !important; }
+        .sound-panel .collapsible { margin-bottom: 5px !important; }
+        .sound-panel .collapsible-header { padding: 8px !important; margin-bottom: 5px !important; }
+        .sound-panel .collapsible-content { padding-left: 5px !important; }
+        .sound-panel .btn-row { gap: 8px !important; }
+        .sound-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sound-panel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sound-panel::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        body.dark-mode .sound-panel::-webkit-scrollbar-thumb {
+            background: #555;
+        }
+        .sound-panel h2 {
+            margin-top: 0;
+            font-size: 18px;
+        }
+        .sound-panel button {
+            width: 100%;
+            margin: 3px 0;
+        }
+        #previewMusicBtn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            background: #7f8aa8;
+        }
+        body.dark-mode #previewMusicBtn:disabled {
+            background: #394264;
+            color: #c5cada;
+        }
+        .sound-panel select {
+            width: 100%;
+            padding: 6px;
+            margin: 3px 0;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+        }
+        .version-badge {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            font-size: 10px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            opacity: 0.5;
+            z-index: 10;
+            color: #e0e0e0;
+            margin-left: 20px;
+        }
+        body.dark-mode .version-badge {
+            color: #e0e0e0;
+        }
+        .panel-header {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px;
+            user-select: none;
+        }
+        .panel-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+        .panel-content {
+            /* Let panel content size to its content; scrolling is handled by .sound-panel */
+            overflow: visible;
+            transition: none;
+            max-height: none;
+            opacity: 1;
+        }
+        .panel-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+        .collapsible {
+            margin-bottom: 5px;
+        }
+        .collapsible-header {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            user-select: none;
+        }
+        .collapsible-header h3 {
+            margin: 0;
+            font-size: 14px;
+            color: #333;
+        }
+        .collapsible-content {
+            /* Allow content-driven height; collapse will hide via the .collapsed class */
+            overflow: visible;
+            transition: opacity 0.2s ease-out;
+            max-height: none;
+            opacity: 1;
+            padding-left: 5px;
+        }
+        .collapsible-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+        .arrow {
+            transition: transform 0.3s;
+            font-size: 12px;
+        }
+        .arrow.collapsed {
+            transform: rotate(-90deg);
+        }
+        body.dark-mode {
+            background: linear-gradient(135deg, #0c1120 0%, #170f20 100%);
+            color: #e0e0e0;
+        }
+        body.dark-mode .container {
+            background: #1e1e2f;
+            color: #e0e0e0;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+        }
+        body.dark-mode .clock-display {
+            color: #e0e0e0;
+        }
+        body.dark-mode h1, body.dark-mode h2, body.dark-mode h3 {
+            color: #e0e0e0;
+        }
+        body.dark-mode input {
+            background: #2a2a3f;
+            color: #e0e0e0;
+            border-color: #4a5a9e;
+        }
+        body.dark-mode button {
+            background: #4a5a9e;
+        }
+        body.dark-mode button:hover {
+            background: #5a3a7a;
+        }
+        body.dark-mode .sound-panel {
+            background: #1e1e2f;
+            color: #e0e0e0;
+        }
+        body.dark-mode .sound-panel select {
+            border-color: #4a5a9e;
+            background: #2a2a3f;
+            color: #e0e0e0;
+        }
+        body.dark-mode .collapsible-header {
+            background: #2a2a3f;
+        }
+        body.dark-mode .collapsible-header h3 {
+            color: #e0e0e0;
+        }
+        body.dark-mode .setting-label {
+            color: #e0e0e0 !important;
+        }
+        
+        .error-message {
+            position: fixed;
+            top: 70px;
+            left: 20px;
+            background: white;
+            color: #d32f2f;
+            border: 2px solid #d32f2f;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 20;
+            opacity: 1;
+            transition: opacity 2s ease-out;
+            min-width: 200px;
+            max-width: 300px;
+        }
+        body.dark-mode .error-message {
+            background: #2a1e1e;
+            color: #ff5252;
+            border-color: #ff5252;
+            box-shadow: 0 4px 12px rgba(255, 82, 82, 0.4);
+        }
+        .error-message button {
+            margin: 0 0 0 10px;
+            padding: 4px 12px;
+            font-size: 12px;
+            margin-top: 10px;
+            background: transparent;
+            color: #4caf50;
+            border: 2px solid #4caf50;
+            border-radius: 4px;
+            cursor: pointer;
+            float: right;
+        }
+        .error-message button:hover {
+            background: rgba(76, 175, 80, 0.1);
+            color: #45a049;
+            border-color: #45a049;
+        }
+        body.dark-mode .error-message button {
+            color: #81c784;
+            border-color: #81c784;
+            background: rgba(129, 199, 132, 0.1);
+        }
+        body.dark-mode .error-message button:hover {
+            color: #66bb6a;
+            border-color: #66bb6a;
+            background: rgba(102, 187, 106, 0.2);
+        }
+        #errorText {
+            display: inline-block;
+        }
+
+        .music-hint {
+            position: fixed;
+            right: 12px;
+            bottom: 12px;
+            --hint-base-transform: translateX(0);
+            transform: var(--hint-base-transform) scale(1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            max-width: min(88vw, 360px);
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(48, 62, 122, 0.35);
+            background: rgba(255, 255, 255, 0.78);
+            color: #2f3f86;
+            font-size: 12px;
+            font-family: Arial, sans-serif;
+            font-weight: 600;
+            line-height: 1.25;
+            text-align: center;
+            box-shadow: 0 5px 14px rgba(0, 0, 0, 0.18);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 8;
+            transition: width 0.25s ease, height 0.25s ease, padding 0.25s ease, opacity 0.25s ease, border-color 0.25s ease, background 0.25s ease, transform 0.25s ease;
+            cursor: default;
+        }
+        .music-hint-icon {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            line-height: 1;
+            opacity: 1;
+        }
+        .music-hint.expanding {
+            animation: hintExpand 0.28s ease;
+        }
+        .music-hint.collapsing {
+            animation: hintCollapse 0.28s ease;
+        }
+        .music-hint.collapsed {
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            background: rgba(255, 255, 255, 0.42);
+            border-color: rgba(48, 62, 122, 0.28);
+            opacity: 0.74;
+            cursor: pointer;
+        }
+        .music-hint.collapsed .music-hint-text {
+            display: none;
+        }
+        .music-hint.collapsed .music-hint-icon {
+            display: inline-flex;
+            opacity: 0.58;
+        }
+        body.dark-mode .music-hint {
+            background: rgba(30, 30, 47, 0.82);
+            color: #dbe3ff;
+            border-color: rgba(144, 163, 240, 0.45);
+        }
+        body.dark-mode .music-hint.collapsed {
+            background: rgba(30, 30, 47, 0.5);
+            border-color: rgba(144, 163, 240, 0.35);
+            opacity: 0.68;
+        }
+
+        @keyframes hintExpand {
+            from {
+                transform: var(--hint-base-transform) scale(0.9);
+                opacity: 0.58;
+            }
+            to {
+                transform: var(--hint-base-transform) scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes hintCollapse {
+            from {
+                transform: var(--hint-base-transform) scale(1);
+                opacity: 1;
+            }
+            to {
+                transform: var(--hint-base-transform) scale(0.9);
+                opacity: 0.68;
+            }
+        }
+        .tz-select {
+            width: auto;
+            padding: 6px;
+            margin: 3px 0;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            background: white;
+            color: #333;
+            font-size: 13px;
+        }
+body.dark-mode .tz-select {
+            background: #2a2a3f;
+            color: #e0e0e0;
+            border-color: #4a5a9e;
+        }
+        .tz-row {
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+            width: fit-content;
+            max-width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .tz-row .tz-select {
+            flex: 0 0 auto;
+            min-width: 0;
+            margin: 0;
+        }
+        .tz-detect-btn {
+            padding: 6px 10px;
+            margin: 0;
+            font-size: 12px;
+            white-space: nowrap;
+            width: fit-content;
+            max-width: 100%;
+            flex: 0 0 auto;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .tz-detect-btn:hover {
+            background: #764ba2;
+        }
+        body.dark-mode .tz-detect-btn {
+            background: #4a5a9e;
+        }
+        body.dark-mode .tz-detect-btn:hover {
+            background: #5a3a7a;
+        }
+
+        @media (max-width: 900px) {
+            body {
+                padding: 16px 14px calc(130px + env(safe-area-inset-bottom, 0px));
+                gap: 12px;
+            }
+            .clock-grid {
+                margin-top: 80px;
+                gap: 14px;
+                width: 100%;
+                padding-bottom: 120px;
+            }
+            .container {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                padding: 18px 14px;
+            }
+            #clockContainer {
+                width: min(100%, 640px);
+                min-width: 0;
+            }
+            .clock-display {
+                font-size: clamp(70px, 20vw, 150px);
+                letter-spacing: -1px;
+                margin: 10px 0;
+            }
+            .date-display {
+                font-size: clamp(17px, 4.6vw, 24px);
+            }
+            .timezone-label {
+                font-size: clamp(13px, 3.8vw, 16px);
+            }
+            .sound-panel {
+                width: min(380px, calc(100vw - 20px));
+                right: 50%;
+                transform: translateX(50%);
+                top: 70px;
+                bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+                max-height: none;
+            }
+            .add-clock-btn {
+                width: min(360px, calc(100vw - 24px));
+                bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+                padding: 12px 16px;
+            }
+            .version-badge {
+                left: 10px;
+                bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+                margin-left: 0;
+            }
+            .error-message {
+                left: 10px;
+                right: 10px;
+                min-width: 0;
+                max-width: none;
+            }
+            .music-hint {
+                right: 10px;
+                bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+                max-width: calc(100vw - 20px);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .toolbar {
+                height: 56px;
+            }
+            .toolbar-title {
+                left: 44px;
+                font-size: 14px;
+                line-height: 1.15;
+                max-width: calc(100vw - 130px);
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .toolbar-nav {
+                max-width: calc(100vw - 180px);
+                gap: 4px;
+            }
+            .toolbar-nav-btn {
+                font-size: 11px;
+                padding: 5px 8px;
+                min-height: 30px;
+            }
+            .help-btn {
+                right: 100px;
+                width: 34px;
+                height: 32px;
+            }
+            #helpBtn {
+                right: 148px;
+            }
+            #languageToggleBtn {
+                right: 102px;
+                font-size: 10px;
+            }
+            .settings-toggle-btn {
+                right: 56px;
+                width: 34px;
+                height: 32px;
+            }
+            .darkmode-btn {
+                right: 10px;
+                width: 34px;
+                height: 32px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .toolbar {
+                height: 56px;
+            }
+            .toolbar-title {
+                left: 44px;
+                font-size: 14px;
+                line-height: 1.15;
+                max-width: calc(100vw - 130px);
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .toolbar-nav {
+                max-width: calc(100vw - 180px);
+                gap: 4px;
+            }
+            .toolbar-nav-btn {
+                font-size: 11px;
+                padding: 5px 8px;
+                min-height: 30px;
+            }
+            .help-btn {
+                right: 100px;
+                width: 34px;
+                height: 32px;
+            }
+            #helpBtn {
+                right: 148px;
+            }
+            #languageToggleBtn {
+                right: 102px;
+                font-size: 10px;
+            }
+            .settings-toggle-btn {
+                right: 56px;
+                width: 34px;
+                height: 32px;
+            }
+            .darkmode-btn {
+                right: 10px;
+                width: 34px;
+                height: 32px;
+            }
+            .clock-grid {
+                margin-top: 72px;
+                gap: 12px;
+            }
+            .container {
+                border-radius: 12px;
+                padding: 14px 10px;
+            }
+            .clock-display {
+                font-size: clamp(52px, 20vw, 90px);
+                line-height: 0.95;
+            }
+            .tz-row {
+                width: 100%;
+                gap: 6px;
+            }
+            .tz-row .tz-select,
+            .tz-row .tz-detect-btn {
+                width: 100%;
+            }
+            button,
+            input,
+            select,
+            .tz-select,
+            .tz-detect-btn {
+                min-height: 40px;
+                font-size: 14px;
+            }
+            .sound-panel {
+                top: 64px;
+                width: calc(100vw - 12px);
+                padding: 8px;
+                bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+                max-height: none;
+            }
+            .sound-panel h2,
+            .panel-header h2 {
+                font-size: 16px;
+            }
+            .version-badge {
+                font-size: 9px;
+                opacity: 0.4;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .clock-display {
+                font-size: clamp(44px, 18vw, 72px);
+            }
+            .date-display {
+                font-size: 15px;
+            }
+            .timezone-label {
+                font-size: 12px;
+            }
+        }
+
+        @media (max-height: 500px) and (orientation: landscape) {
+            .clock-grid {
+                margin-top: 64px;
+            }
+            .clock-display {
+                font-size: clamp(38px, 10vh, 70px);
+                margin: 6px 0;
+            }
+            .sound-panel {
+                top: 60px;
+                bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <div class="toolbar">
+        <div id="toolbarTitle" class="toolbar-title" onclick="location.reload()" title="Seite neu laden" role="button" tabindex="0" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); location.reload(); }">Uhr mit<br>Hintergrundmusik</div>
+        <div class="toolbar-nav">
+            <button id="navTimerBtn" class="toolbar-nav-btn" type="button" onclick="location.href='Timer mit Hintergrundmusik V2 2.html'">Timer</button>
+            <button id="navStopwatchBtn" class="toolbar-nav-btn" type="button" onclick="location.href='Stoppuhr mit Hintergrundmusik V2 2.html'">Stoppuhr</button>
+            <button id="navClockBtn" class="toolbar-nav-btn active" type="button" onclick="location.href='Uhr mit Hintergrundmusik V2 2.html'">Uhr</button>
+        </div>
+        <button id="helpBtn" class="help-btn" type="button" onclick="showProgramHelp()" title="Anleitung anzeigen">i</button>
+        <button id="languageToggleBtn" class="settings-toggle-btn" type="button" onclick="toggleLanguage()" title="Sprache wechseln">DE</button>
+        <button id="settingsToggleBtn" class="settings-toggle-btn" onclick="toggleSettingsPanel()" title="Einstellungen ein-/ausblenden"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
+        <button id="darkModeToggleBtn" class="darkmode-btn" onclick="toggleDarkMode()" title="Darkmode umschalten"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></button>
+    </div>
+
+    <div id="clockGrid" class="clock-grid">
+        <div class="container clock-card" id="clockContainer" data-clock-index="0">
+            <div id="inputContainer" style="width:100%; box-sizing:border-box; margin-bottom:6px;">
+                <div id="inputTitle" tabindex="0" onclick="enableTitleEdit()" onkeydown="if(event.key==='Enter'){ enableTitleEdit(); }">Uhr</div>
+                <div class="title-edit-row" style="display:none; width:100%; box-sizing:border-box; gap:6px; align-items:center;">
+                    <input type="text" id="inputTitleEdit" placeholder="Titel eingeben" onblur="saveTitleEdit()" onkeydown="handleTitleKey(event)">
+                    <button id="inputTitleSaveBtn" onclick="saveTitleEdit()" aria-label="Speichern" style="display:inline-flex; align-items:center; justify-content:center; height:var(--control-height); line-height:var(--control-height); box-sizing:border-box; padding:0 calc(10px * var(--ui-scale));">✔</button>
+                </div>
+            
+            <button class="clock-close-btn" type="button" onclick="removeClock(0)" title="Uhr schliessen">&times;</button>
+            <div class="clock-display" id="clockDisplay">
+                <span id="clockHours">00</span><span class="seconds-separator no-blink" id="clockSeparator">:</span><span id="clockMinutes">00</span><span class="seconds-separator no-blink" id="clockSeparator2">:</span><span id="clockSeconds">00</span><span id="clockPeriod" class="clock-period"></span>
+            </div>
+            <div class="analog-clock-display" id="analogClockDisplay" aria-hidden="true">
+                <div class="analog-clock-face" id="analogClockFace">
+                    <div class="analog-hand analog-hour" id="analogHourHand"></div>
+                    <div class="analog-hand analog-minute" id="analogMinuteHand"></div>
+                    <div class="analog-hand analog-second" id="analogSecondHand"></div>
+                    <div class="analog-center"></div>
+                </div>
+            </div>
+            <div id="dateDisplay" class="date-display"></div>
+            <div class="tz-row">
+                <select id="timezoneSelect" class="tz-select" onchange="changeTimezone(0)"></select>
+                <button type="button" onclick="detectTimezone(0)" class="tz-detect-btn">Automatisch erkennen</button>
+            </div>
+            <div id="timezoneLabel" class="timezone-label"></div>
+        </div>
+    </div>
+
+    <button id="addClockBtn" class="add-clock-btn" type="button" onclick="addClock()">+ Weitere Uhr</button>
+
+    <div class="sound-panel" style="display: none;">
+        <div class="panel-header" onclick="togglePanel()">
+            <h2 id="panelTitle">Einstellungen</h2>
+            <span class="arrow" id="panelArrow">▼</span>
+        </div>
+        <div class="panel-content" id="panelContent">
+            <div class="collapsible">
+                <div class="collapsible-header" onclick="toggleSection('general')">
+                    <h3 id="generalSettingsTitle">Allgemeine Einstellungen</h3>
+                    <span class="arrow" id="arrow-general">▼</span>
+                </div>
+                <div class="collapsible-content" id="content-general">
+                    <div class="setting-label" id="sizeSettingLabel" style="font-family: Arial, sans-serif; font-size: 14px; margin-bottom: 2px;">Textgrösse</div>
+                    <div style="display: flex; align-items: center; margin: 1px 0;">
+                        <span onclick="resetClockFontSize()" title="Standardgrösse" style="cursor: pointer; user-select: none;">🔤</span>
+                        <input type="range" id="clockFontSize" min="50" max="300" value="150" onchange="setClockFontSize()" style="flex: 1; margin-left: 5px;">
+                    </div>
+                    <button onclick="toggleDarkMode()" id="darkModeBtn" style="margin-bottom: 8px;">Darkmode: <span id="darkModeStatus">Ein</span></button>
+                    <button onclick="toggleAnalogMode()" id="analogModeBtn" style="margin-bottom: 8px;">Analoganzeige: <span id="analogModeStatus">Aus</span></button>
+                    <button onclick="toggleHourFormat()" id="hourFormatBtn" style="margin-bottom: 8px;">Zeitformat: <span id="hourFormatStatus">24h</span></button>
+                    <button onclick="toggleBlink()" id="blinkBtn" style="margin-bottom: 8px;">Sekunden-Blinken: <span id="blinkStatus">Aus</span></button>
+                    <button onclick="toggleTimezoneControls()" id="timezoneControlsBtn" style="margin-bottom: 8px;">Zeitzonen-Einstellung anzeigen: <span id="timezoneControlsStatus">Ein</span></button>
+                    <button onclick="toggleTimezoneLabel()" id="timezoneLabelBtn" style="margin-bottom: 8px;">Zeitzonen-Anzeige anzeigen: <span id="timezoneLabelStatus">Ein</span></button>
+                    <button onclick="toggleTitleVisibility()" id="titleToggleBtn" style="margin-bottom: 8px;">Titel anzeigen: <span id="titleToggleStatus">Ein</span></button>
+                    <button onclick="toggleTabBlink()" id="tabBlinkBtn" style="margin-bottom: 8px;">Anzeige im Tab: <span id="tabBlinkStatus">Ein</span></button>
+                </div>
+            </div>
+            <div class="collapsible">
+                <div class="collapsible-header" onclick="toggleSection('sound')">
+                    <h3 id="soundSettingsTitle">Sound-Einstellungen</h3>
+                    <span class="arrow" id="arrow-sound">▼</span>
+                </div>
+                <div class="collapsible-content" id="content-sound">
+                    <button id="musicToggleBtn" onclick="toggleMusic()">Hintergrundmusik: <span id="musicStatus">Aus</span></button>
+                    <select id="musicSound" onchange="changeMusicSound()">
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Elevator Music.mp3">Elevator Music</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Chill Deep House Mix.mp3">Chill Deep House Mix</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Deep Focus Music.mp3">Deep Focus Music</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Elevator Music Jazz.mp3">Elevator Music Jazz</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Epic Music.mp3">Epic Music</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Kahoot Lobby theme song.mp3">Kahoot Lobby theme song</option>
+                        <option value="Kahoot Answer">Kahoot Answer</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Minecraft.mp3">Minecraft</option>
+                        <option value="Minecraft Album">Minecraft Album</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Party Mix Mashup.mp3">Party Mix Mashup</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Super Mario.mp3">Super Mario</option>
+                        <option value="upload">Eigene Datei</option>
+                    </select>
+                    <input type="file" id="musicFile" accept="audio/*" style="display: none; margin: 3px 0;">
+                    <span id="musicFileName" style="font-size: 12px; color: #667eea;"></span>
+                    <div style="display: flex; align-items: center; margin: 1px 0;">
+                        <span id="musicMuteBtn" onclick="muteMusic()" title="Stumm" style="cursor: pointer; user-select: none;">🔊</span>
+                        <input type="range" id="musicVolume" min="0" max="1" step="0.1" value="0.75" onchange="setMusicVolume()" style="flex: 1; margin-left: 5px;">
+                    </div>
+                    <button id="previewMusicBtn" style="width: 100%; margin: 3px 0;" onclick="previewMusic()" disabled>Musik vorhören</button>
+                </div>
+            </div>
+            <div class="collapsible">
+                <div class="collapsible-header" onclick="toggleSection('color')">
+                    <h3 id="colorSettingsTitle">Farb‑Einstellungen</h3>
+                    <span class="arrow" id="arrow-color">▼</span>
+                </div>
+                <div class="collapsible-content" id="content-color">
+                    <button onclick="toggleColorMenu()" id="clockColorBtn" style="margin-bottom: 8px;">Uhr-Farbe</button>
+                    <div id="colorMenu" style="display: none; background: white; border: 1px solid #667eea; border-radius: 5px; padding: 10px; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span id="clockColorMenuTitle" style="font-weight: bold; font-size: 14px; color: #333;">Farbe wählen</span>
+                            <span onclick="toggleColorMenu()" style="cursor: pointer; font-size: 16px; color: #667eea; font-weight: bold;">OK</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 8px;">
+                            <div onclick="pickColor('#333333')" style="width: 100%; height: 25px; background: #333333; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#ff0000')" style="width: 100%; height: 25px; background: #ff0000; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#00ff00')" style="width: 100%; height: 25px; background: #00ff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#0000ff')" style="width: 100%; height: 25px; background: #0000ff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#ffa500')" style="width: 100%; height: 25px; background: #ffa500; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#800080')" style="width: 100%; height: 25px; background: #800080; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#00ffff')" style="width: 100%; height: 25px; background: #00ffff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#ff69b4')" style="width: 100%; height: 25px; background: #ff69b4; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#ffff00')" style="width: 100%; height: 25px; background: #ffff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#a52a2a')" style="width: 100%; height: 25px; background: #a52a2a; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#808080')" style="width: 100%; height: 25px; background: #808080; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#ffffff')" style="width: 100%; height: 25px; background: #ffffff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <input type="color" id="clockColor" value="#333333" onchange="pickColor(this.value)" style="width: 30px; height: 25px; border: none; cursor: pointer; padding: 0;">
+                            <span style="font-size: 12px; color: #666;">Eigene Farbe</span>
+                        </div>
+                    </div>
+                    <button onclick="toggleContainerColorMenu()" id="containerColorBtn" style="margin-bottom: 8px;">Container-Farbe</button>
+                    <div id="containerColorMenu" style="display: none; background: white; border: 1px solid #667eea; border-radius: 5px; padding: 10px; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span id="containerColorMenuTitle" style="font-weight: bold; font-size: 14px; color: #333;">Container-Farbe wählen</span>
+                            <span onclick="toggleContainerColorMenu()" style="cursor: pointer; font-size: 16px; color: #667eea; font-weight: bold;">OK</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 8px;">
+                            <div onclick="pickContainerColor('#ffffff')" style="width: 100%; height: 25px; background: #ffffff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#f0f0f0')" style="width: 100%; height: 25px; background: #f0f0f0; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#333333')" style="width: 100%; height: 25px; background: #333333; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#1e1e2f')" style="width: 100%; height: 25px; background: #1e1e2f; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#ff0000')" style="width: 100%; height: 25px; background: #ff0000; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#00ff00')" style="width: 100%; height: 25px; background: #00ff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#0000ff')" style="width: 100%; height: 25px; background: #0000ff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#ffa500')" style="width: 100%; height: 25px; background: #ffa500; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#800080')" style="width: 100%; height: 25px; background: #800080; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#00ffff')" style="width: 100%; height: 25px; background: #00ffff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#ff69b4')" style="width: 100%; height: 25px; background: #ff69b4; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#ffff00')" style="width: 100%; height: 25px; background: #ffff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <input type="color" id="containerColor" value="#ffffff" onchange="pickContainerColor(this.value)" style="width: 30px; height: 25px; border: none; cursor: pointer; padding: 0;">
+                            <span style="font-size: 12px; color: #666;">Eigene Farbe</span>
+                        </div>
+                    </div>
+                    <button onclick="toggleBgColorMenu()" id="bgColorBtn" style="margin-bottom: 8px;">Hintergrund-Farbe</button>
+                    <div id="bgColorMenu" style="display: none; background: white; border: 1px solid #667eea; border-radius: 5px; padding: 10px; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span id="bgColorMenuTitle" style="font-weight: bold; font-size: 14px; color: #333;">Hintergrund-Farbe wählen</span>
+                            <span onclick="toggleBgColorMenu()" style="cursor: pointer; font-size: 16px; color: #667eea; font-weight: bold;">OK</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 8px;">
+                            <div onclick="pickBgColor('#667eea')" style="width: 100%; height: 25px; background: #667eea; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#764ba2')" style="width: 100%; height: 25px; background: #764ba2; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#ff0000')" style="width: 100%; height: 25px; background: #ff0000; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#00ff00')" style="width: 100%; height: 25px; background: #00ff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#0000ff')" style="width: 100%; height: 25px; background: #0000ff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#ffa500')" style="width: 100%; height: 25px; background: #ffa500; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#800080')" style="width: 100%; height: 25px; background: #800080; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#00ffff')" style="width: 100%; height: 25px; background: #00ffff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#ff69b4')" style="width: 100%; height: 25px; background: #ff69b4; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#ffff00')" style="width: 100%; height: 25px; background: #ffff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#333333')" style="width: 100%; height: 25px; background: #333333; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#000000')" style="width: 100%; height: 25px; background: #000000; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <input type="color" id="bgColor" value="#667eea" onchange="pickBgColor(this.value)" style="width: 30px; height: 25px; border: none; cursor: pointer; padding: 0;">
+                            <span style="font-size: 12px; color: #666;">Eigene Farbe</span>
+                        </div>
+                    </div>
+                    <button onclick="resetColors()" id="resetColorsBtn" style="margin-bottom: 8px;">Standardfarben wiederherstellen</button>
+                </div>
+                <div class="panel-bottom-spacer" style="height:8px; width:100%;"></div>
+        </div>
+    </div>
+
+    <audio id="musicAudio" preload="auto"></audio>
+    <div id="versionBadge" class="version-badge">V2.2</div>
+
+    <div id="errorMessage" class="error-message" style="display: none;">
+        <span id="errorText">Sound-Datei nicht gefunden!</span>
+        <button id="understoodBtn" onclick="handleUnderstood()">Verstanden</button>
+    </div>
+
+    <div id="musicHint" class="music-hint" aria-live="polite" role="button" tabindex="0" title="Info anzeigen">
+        <span id="musicHintText" class="music-hint-text">Hintergrungmusik in den einstellungen einschelten.</span>
+        <span class="music-hint-icon" aria-hidden="true">i</span>
+    </div>
+
+    <div id="helpOverlay" class="help-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="helpTitle" onclick="if (event.target === this) hideProgramHelp()">
+        <div class="help-dialog">
+            <div class="help-dialog-header">
+                <h2 id="helpTitle" class="help-dialog-title">Uhr</h2>
+                <button type="button" class="help-dialog-close" onclick="hideProgramHelp()" aria-label="Hilfe schließen">&times;</button>
+            </div>
+            <div id="helpBody" class="help-dialog-body"></div>
+        </div>
+    </div>
+
+    <script>
+        // Ensure settings panel has bottom spacer so last control can be scrolled past
+        (function ensurePanelSpacer(){
+            function insertSpacer(){
+                try{
+                    const panel = document.querySelector('.sound-panel .panel-content');
+                    if (!panel) return;
+                    if (!panel.querySelector('.panel-bottom-spacer')){
+                        const spacer = document.createElement('div');
+                        spacer.className = 'panel-bottom-spacer';
+                        spacer.style.height = '8px';
+                        spacer.style.width = '100%';
+                        panel.appendChild(spacer);
+                    }
+                }catch(e){}
+            }
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', insertSpacer); else insertSpacer();
+        })();
+        // ===== TIMEZONE DATA =====
+        const TIMEZONE_LIST = [
+            { value: "Pacific/Midway", label: "(UTC-11) Midway" },
+            { value: "Pacific/Honolulu", label: "(UTC-10) Hawaii" },
+            { value: "America/Anchorage", label: "(UTC-9) Alaska" },
+            { value: "America/Los_Angeles", label: "(UTC-8) Los Angeles" },
+            { value: "America/Denver", label: "(UTC-7) Denver" },
+            { value: "America/Chicago", label: "(UTC-6) Chicago" },
+            { value: "America/New_York", label: "(UTC-5) New York" },
+            { value: "America/Halifax", label: "(UTC-4) Halifax" },
+            { value: "America/Argentina/Buenos_Aires", label: "(UTC-3) Buenos Aires" },
+            { value: "Atlantic/South_Georgia", label: "(UTC-2) South Georgia" },
+            { value: "Atlantic/Azores", label: "(UTC-1) Azoren" },
+            { value: "Europe/London", label: "(UTC+0) London" },
+            { value: "Europe/Berlin", label: "(UTC+1) Berlin" },
+            { value: "Europe/Paris", label: "(UTC+1) Paris" },
+            { value: "Europe/Zurich", label: "(UTC+1) Zürich" },
+            { value: "Europe/Vienna", label: "(UTC+1) Wien" },
+            { value: "Europe/Athens", label: "(UTC+2) Athen" },
+            { value: "Europe/Helsinki", label: "(UTC+2) Helsinki" },
+            { value: "Europe/Moscow", label: "(UTC+3) Moskau" },
+            { value: "Asia/Dubai", label: "(UTC+4) Dubai" },
+            { value: "Asia/Karachi", label: "(UTC+5) Karatschi" },
+            { value: "Asia/Kolkata", label: "(UTC+5:30) Kalkutta" },
+            { value: "Asia/Dhaka", label: "(UTC+6) Dhaka" },
+            { value: "Asia/Bangkok", label: "(UTC+7) Bangkok" },
+            { value: "Asia/Shanghai", label: "(UTC+8) Shanghai" },
+            { value: "Asia/Tokyo", label: "(UTC+9) Tokio" },
+            { value: "Australia/Sydney", label: "(UTC+11) Sydney" },
+            { value: "Pacific/Auckland", label: "(UTC+12) Auckland" }
+        ];
+
+        let musicEnabled = false;
+        let musicPreviewPlaying = false;
+        let blinkEnabled = false;
+        // show time in browser tab
+        let tabBlinkEnabled = true;
+        const BASE_TITLE = document.title || 'Uhr';
+        let use12HourFormat = false;
+        let musicPlaylist = [];
+        let currentTrackIndex = 0;
+        let isMusicShuffle = false;
+        let clockStates = [];
+        let showTimezoneControls = true;
+        let showTimezoneLabel = true;
+        let isAnalogMode = false;
+        const LANGUAGE_KEY = 'appLanguage';
+        let currentLanguage = localStorage.getItem(LANGUAGE_KEY) === 'en' ? 'en' : 'de';
+        const LANG = {
+            de: {
+                toolbarTitle: 'Uhr mit<br>Hintergrundmusik',
+                navTimer: 'Timer',
+                navStopwatch: 'Stoppuhr',
+                navClock: 'Uhr',
+                langTooltip: 'Sprache wechseln',
+                helpTooltip: 'Anleitung anzeigen',
+                settingsTooltip: 'Einstellungen ein-/ausblenden',
+                darkModeTooltip: 'Darkmode umschalten',
+                lightModeTooltip: 'Hellmodus umschalten',
+                on: 'Ein',
+                off: 'Aus',
+                settings: 'Einstellungen',
+                generalSettings: 'Allgemeine Einstellungen',
+                soundSettings: 'Sound-Einstellungen',
+                addClock: '+ Weitere Uhr',
+                closeClock: 'Uhr schließen',
+                detectTimezone: 'Automatisch erkennen',
+                timezoneLabel: 'Zeitzone',
+                backgroundMusic: 'Hintergrundmusik',
+                previewMusic: 'Musik vorhören',
+                stopPreview: '⏹ Musik stoppen',
+                previewLocked: '🔒 Vorhören deaktiviert',
+                showInfo: 'Info anzeigen',
+                mute: 'Stumm',
+                darkMode: 'Darkmode',
+                analogDisplay: 'Analoganzeige',
+                textSize: 'Textgrösse',
+                clockColor: 'Uhr-Farbe',
+                containerColor: 'Container-Farbe',
+                backgroundColor: 'Hintergrund-Farbe',
+                resetColors: 'Standardfarben wiederherstellen',
+                colorSettingsTitle: 'Farb‑Einstellungen',
+                showTitle: 'Titel anzeigen',
+                blink: 'Sekunden-Blinken',
+                tabBlink: 'Anzeige im Tab',
+                timeFormat: 'Zeitformat',
+                timezoneControls: 'Zeitzonen-Einstellung anzeigen',
+                timezoneLabelToggle: 'Zeitzonen-Anzeige anzeigen',
+                chooseColor: 'Farbe wählen',
+                customColor: 'Eigene Farbe',
+                musicHintText: 'Hintergrungmusik in den einstellungen einschelten.',
+                helpUseTitle: 'So benutzt du das Programm',
+                helpUseItem1: 'Die Uhr zeigt die aktuelle Zeit automatisch an.',
+                helpUseItem2: 'Mit „+ Weitere Uhr“ kannst du zusätzliche Uhren hinzufügen.',
+                helpUseItem3: 'In jeder Uhr wählst du die gewünschte Zeitzone oder lässt sie automatisch erkennen.',
+                helpUseItem4: 'Mit dem X oben rechts entfernst du eine Zusatzuhr wieder.',
+                helpUseItem5: 'Über „Einstellungen“ passt du Farbe, Schriftgröße, Sekunden-Blinken, Zeitzonen und Musik an.',
+                helpFeaturesTitle: 'Funktionen',
+                helpFeaturesItem1: 'Mehrere Uhren parallel auf einem Bildschirm.',
+                helpFeaturesItem2: 'Automatische Zeitzonenerkennung ohne Standortfreigabe.',
+                helpFeaturesItem3: 'Sekunden-Blinken ein- oder ausschalten.',
+                helpFeaturesItem4: 'Zeitzonen-Anzeige und Steuerung ein- oder ausblenden.',
+                helpFeaturesItem5: 'Hintergrundmusik vorhören oder abspielen.',
+                helpFeaturesItem6: 'Darkmode und Farben anpassen.',
+                helpBrowserTitle: 'Browser-Ton',
+                helpBrowserItem1: 'Für die Wiedergabe sind keine besonderen Browser-Rechte nötig.',
+                helpBrowserItem2: 'Der Browser muss Ton erlauben und darf den Tab nicht stumm schalten.',
+                helpBrowserItem3: 'Falls Autoplay blockiert wird, einmal auf einen Button tippen, damit der Ton startet.',
+                soundFileNotFound: 'Sound-Datei nicht gefunden!',
+                musicUnavailable: 'Hintergrundmusik nicht verfügbar',
+                previewBlocked: 'Musikvorhören ist blockiert, solange die Hintergrundmusik läuft.',
+                understood: 'Verstanden',
+                helpCloseAria: 'Hilfe schließen',
+                clockSize: 'Uhrgrösse',
+                resetSizeTooltip: 'Standardgrösse'
+            },
+            en: {
+                toolbarTitle: 'Clock with<br>Background Music',
+                navTimer: 'Timer',
+                navStopwatch: 'Stopwatch',
+                navClock: 'Clock',
+                langTooltip: 'Switch language',
+                helpTooltip: 'Show guide',
+                settingsTooltip: 'Show/hide settings',
+                darkModeTooltip: 'Toggle dark mode',
+                lightModeTooltip: 'Toggle light mode',
+                on: 'On',
+                off: 'Off',
+                settings: 'Settings',
+                generalSettings: 'General settings',
+                soundSettings: 'Sound settings',
+                addClock: '+ Add another clock',
+                closeClock: 'Close clock',
+                detectTimezone: 'Detect automatically',
+                timezoneLabel: 'Time zone',
+                backgroundMusic: 'Background music',
+                previewMusic: 'Preview music',
+                stopPreview: '⏹ Stop preview',
+                previewLocked: '🔒 Preview disabled',
+                showInfo: 'Show info',
+                mute: 'Mute',
+                darkMode: 'Dark mode',
+                analogDisplay: 'Analog display',
+                textSize: 'Text size',
+                clockColor: 'Clock color',
+                containerColor: 'Container color',
+                backgroundColor: 'Background color',
+                resetColors: 'Restore default colors',
+                colorSettingsTitle: 'Color Settings',
+                showTitle: 'Show title',
+                blink: 'Seconds blinking',
+                tabBlink: 'Display in tab',
+                timeFormat: 'Time format',
+                timezoneControls: 'Show timezone controls',
+                timezoneLabelToggle: 'Show timezone label',
+                chooseColor: 'Choose color',
+                customColor: 'Custom color',
+                musicHintText: 'Background music can be enabled in the settings.',
+                helpUseTitle: 'How to use this program',
+                helpUseItem1: 'The clock shows the current time automatically.',
+                helpUseItem2: 'Use “+ Add another clock” to add more clocks.',
+                helpUseItem3: 'In each clock, choose the time zone you want or let it detect automatically.',
+                helpUseItem4: 'Use the X in the top-right corner to remove an extra clock.',
+                helpUseItem5: 'Use “Settings” to adjust color, font size, blinking seconds, time zones and music.',
+                helpFeaturesTitle: 'Features',
+                helpFeaturesItem1: 'Several clocks at the same time on one screen.',
+                helpFeaturesItem2: 'Automatic time zone detection without sharing your location.',
+                helpFeaturesItem3: 'Turn seconds blinking on or off.',
+                helpFeaturesItem4: 'Show or hide the time zone label and controls.',
+                helpFeaturesItem5: 'Preview or play background music.',
+                helpFeaturesItem6: 'Adjust dark mode and colors.',
+                helpBrowserTitle: 'Browser sound',
+                helpBrowserItem1: 'No special browser permissions are required for playback.',
+                helpBrowserItem2: 'The browser must allow sound and may not mute the tab.',
+                helpBrowserItem3: 'If autoplay is blocked, tap a button once to start the sound.',
+                soundFileNotFound: 'Sound file not found!',
+                musicUnavailable: 'Background music is unavailable',
+                previewBlocked: 'Music preview is blocked while background music is playing.',
+                understood: 'Understood',
+                helpCloseAria: 'Close help',
+                clockSize: 'Clock size',
+                resetSizeTooltip: 'Default size'
+            }
+        };
+
+        function tl(key) {
+            return (LANG[currentLanguage] && LANG[currentLanguage][key]) || key;
+        }
+
+        function applyLanguage() {
+            document.documentElement.lang = currentLanguage;
+            localStorage.setItem(LANGUAGE_KEY, currentLanguage);
+
+            document.getElementById('toolbarTitle').innerHTML = tl('toolbarTitle');
+            document.getElementById('navTimerBtn').textContent = tl('navTimer');
+            document.getElementById('navStopwatchBtn').textContent = tl('navStopwatch');
+            document.getElementById('navClockBtn').textContent = tl('navClock');
+
+            const langBtn = document.getElementById('languageToggleBtn');
+            langBtn.textContent = currentLanguage.toUpperCase();
+            langBtn.title = tl('langTooltip');
+            document.getElementById('helpBtn').title = tl('helpTooltip');
+            document.getElementById('settingsToggleBtn').title = tl('settingsTooltip');
+
+            const isDark = document.body.classList.contains('dark-mode');
+            const darkToolbarBtn = document.getElementById('darkModeToggleBtn');
+            if (darkToolbarBtn) {
+                darkToolbarBtn.title = isDark ? tl('darkModeTooltip') : tl('lightModeTooltip');
+            }
+            const darkModeStatus = document.getElementById('darkModeStatus');
+            if (darkModeStatus) {
+                darkModeStatus.textContent = isDark ? tl('on') : tl('off');
+            }
+
+            const panelTitle = document.getElementById('panelTitle');
+            if (panelTitle) panelTitle.textContent = tl('settings');
+            const generalSettingsTitle = document.getElementById('generalSettingsTitle');
+            if (generalSettingsTitle) generalSettingsTitle.textContent = tl('generalSettings');
+            const soundSettingsTitle = document.getElementById('soundSettingsTitle');
+            if (soundSettingsTitle) soundSettingsTitle.textContent = tl('soundSettings');
+            const addClockBtn = document.getElementById('addClockBtn');
+            if (addClockBtn) addClockBtn.textContent = tl('addClock');
+            const musicHintText = document.getElementById('musicHintText');
+            if (musicHintText) musicHintText.textContent = tl('musicHintText');
+            const errorText = document.getElementById('errorText');
+            if (errorText) errorText.textContent = tl('soundFileNotFound');
+            const understoodBtn = document.getElementById('understoodBtn');
+            if (understoodBtn) understoodBtn.textContent = tl('understood');
+            const helpCloseBtn = document.querySelector('.help-dialog-close');
+            if (helpCloseBtn) helpCloseBtn.setAttribute('aria-label', tl('helpCloseAria'));
+            const helpTitle = document.getElementById('helpTitle');
+            if (helpTitle) helpTitle.textContent = tl('toolbarTitle').replace(/<br>/g, ' ');
+            const musicHint = document.getElementById('musicHint');
+            if (musicHint) musicHint.title = tl('showInfo');
+            const musicToggleBtn = document.getElementById('musicToggleBtn');
+            if (musicToggleBtn) musicToggleBtn.innerHTML = `${tl('backgroundMusic')}: <span id="musicStatus">${musicEnabled ? tl('on') : tl('off')}</span>`;
+            const previewButton = document.getElementById('previewMusicBtn');
+            if (previewButton) previewButton.textContent = musicPreviewPlaying ? tl('stopPreview') : tl('previewMusic');
+            const colorSettingsTitle = document.getElementById('colorSettingsTitle');
+            if (colorSettingsTitle) colorSettingsTitle.textContent = tl('colorSettingsTitle');
+            const muteButton = document.getElementById('musicMuteBtn');
+            if (muteButton) muteButton.title = tl('mute');
+            const darkModeBtn = document.getElementById('darkModeBtn');
+            if (darkModeBtn) darkModeBtn.innerHTML = `${tl('darkMode')}: <span id="darkModeStatus">${isDark ? tl('on') : tl('off')}</span>`;
+            const analogModeBtn = document.getElementById('analogModeBtn');
+            if (analogModeBtn) analogModeBtn.innerHTML = `${tl('analogDisplay')}: <span id="analogModeStatus">${isAnalogMode ? tl('on') : tl('off')}</span>`;
+            const sizeLabel = document.getElementById('sizeSettingLabel');
+            if (sizeLabel) sizeLabel.textContent = tl('textSize');
+            const blinkBtn = document.getElementById('blinkBtn');
+            if (blinkBtn) blinkBtn.innerHTML = `${tl('blink')}: <span id="blinkStatus">${blinkEnabled ? tl('on') : tl('off')}</span>`;
+            const tabBlinkBtn = document.getElementById('tabBlinkBtn');
+            if (tabBlinkBtn) tabBlinkBtn.innerHTML = `${tl('tabBlink')}: <span id="tabBlinkStatus">${tabBlinkEnabled ? tl('on') : tl('off')}</span>`;
+            const hourFormatBtn = document.getElementById('hourFormatBtn');
+            if (hourFormatBtn) hourFormatBtn.innerHTML = `${tl('timeFormat')}: <span id="hourFormatStatus">${use12HourFormat ? '12h' : '24h'}</span>`;
+            const timezoneControlsBtn = document.getElementById('timezoneControlsBtn');
+            if (timezoneControlsBtn) timezoneControlsBtn.innerHTML = `${tl('timezoneControls')}: <span id="timezoneControlsStatus">${showTimezoneControls ? tl('on') : tl('off')}</span>`;
+            const timezoneLabelBtn = document.getElementById('timezoneLabelBtn');
+            if (timezoneLabelBtn) timezoneLabelBtn.innerHTML = `${tl('timezoneLabelToggle')}: <span id="timezoneLabelStatus">${showTimezoneLabel ? tl('on') : tl('off')}</span>`;
+            const titleToggleBtn = document.getElementById('titleToggleBtn');
+            if (titleToggleBtn) titleToggleBtn.innerHTML = `${tl('showTitle')}: <span id="titleToggleStatus">${(localStorage.getItem('inputTitleVisible') === 'false') ? tl('off') : tl('on')}</span>`;
+            const clockColorBtn = document.getElementById('clockColorBtn');
+            if (clockColorBtn) clockColorBtn.textContent = tl('clockColor');
+            const containerColorBtn = document.getElementById('containerColorBtn');
+            if (containerColorBtn) containerColorBtn.textContent = tl('containerColor');
+            const bgColorBtn = document.getElementById('bgColorBtn');
+            if (bgColorBtn) bgColorBtn.textContent = tl('backgroundColor');
+            const resetColorsBtn = document.getElementById('resetColorsBtn');
+            if (resetColorsBtn) resetColorsBtn.textContent = tl('resetColors');
+            const clockColorMenuTitle = document.getElementById('clockColorMenuTitle');
+            if (clockColorMenuTitle) clockColorMenuTitle.textContent = tl('chooseColor');
+            const clockColorMenuHint = document.getElementById('clockColorMenuHint');
+            if (clockColorMenuHint) clockColorMenuHint.textContent = tl('customColor');
+            const containerColorMenuTitle = document.getElementById('containerColorMenuTitle');
+            if (containerColorMenuTitle) containerColorMenuTitle.textContent = tl('containerColor');
+            const containerColorMenuHint = document.getElementById('containerColorMenuHint');
+            if (containerColorMenuHint) containerColorMenuHint.textContent = tl('customColor');
+            const bgColorMenuTitle = document.getElementById('bgColorMenuTitle');
+            if (bgColorMenuTitle) bgColorMenuTitle.textContent = tl('backgroundColor');
+            const bgColorMenuHint = document.getElementById('bgColorMenuHint');
+            if (bgColorMenuHint) bgColorMenuHint.textContent = tl('customColor');
+            document.querySelectorAll('.clock-close-btn').forEach(btn => {
+                btn.title = tl('closeClock');
+            });
+            document.querySelectorAll('.tz-detect-btn').forEach(btn => {
+                btn.textContent = tl('detectTimezone');
+            });
+            document.querySelectorAll('.timezone-label').forEach(label => {
+                const currentValue = label.textContent ? label.textContent.replace(/^(Zeitzone|Time zone):\s*/i, '') : '';
+                if (currentValue) {
+                    label.textContent = tl('timezoneLabel') + ': ' + currentValue;
+                }
+            });
+            renderTitleToggleText();
+        }
+
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'de' ? 'en' : 'de';
+            applyLanguage();
+        }
+
+        const KAHOT_ANSWER_PLAYLIST = [
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Kahoot-Answer/Answer030 Climbing.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Kahoot-Answer/Answer030 Groovy.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Kahoot-Answer/Answer030 Original.mp3"
+        ];
+
+        // Title editing and visibility (copied from Timer)
+        function enableTitleEdit() {
+            const editRow = document.querySelector('.title-edit-row');
+            const edit = document.getElementById('inputTitleEdit');
+            const title = document.getElementById('inputTitle');
+            const saveBtn = document.getElementById('inputTitleSaveBtn');
+            if (!title || !edit) return;
+            edit.value = title.textContent || '';
+            title.style.display = 'none';
+            if (editRow) editRow.style.display = 'flex';
+            if (saveBtn) saveBtn.style.display = 'inline-flex';
+            edit.style.display = 'block';
+            edit.focus();
+            const len = edit.value.length;
+            try { edit.setSelectionRange(len, len); } catch (e) {}
+        }
+
+        function saveTitleEdit() {
+            const title = document.getElementById('inputTitle');
+            const edit = document.getElementById('inputTitleEdit');
+            if (!title || !edit) return;
+            const val = (edit.value || '').trim();
+            title.textContent = val === '' ? 'Uhr' : val;
+            const editRow = document.querySelector('.title-edit-row');
+            const saveBtn = document.getElementById('inputTitleSaveBtn');
+            if (editRow) editRow.style.display = 'none';
+            if (saveBtn) saveBtn.style.display = 'none';
+            edit.style.display = 'none';
+            title.style.display = 'block';
+        }
+
+        function cancelTitleEdit() {
+            const title = document.getElementById('inputTitle');
+            const edit = document.getElementById('inputTitleEdit');
+            const editRow = document.querySelector('.title-edit-row');
+            const saveBtn = document.getElementById('inputTitleSaveBtn');
+            if (editRow) editRow.style.display = 'none';
+            if (saveBtn) saveBtn.style.display = 'none';
+            if (edit) edit.style.display = 'none';
+            if (title) title.style.display = 'block';
+        }
+
+        function handleTitleKey(e) {
+            if (e.key === 'Enter') {
+                e.target.blur();
+            } else if (e.key === 'Escape') {
+                cancelTitleEdit();
+            }
+        }
+
+        // Per-clock title handlers for multiple clocks
+        function enableTitleEditFor(index) {
+            const card = document.querySelector('.clock-card[data-clock-index="' + index + '"]');
+            if (!card) return;
+            const editRow = card.querySelector('#title-edit-row-' + index) || card.querySelector('.title-edit-row');
+            const edit = card.querySelector('#inputTitleEdit-' + index);
+            const title = card.querySelector('#inputTitle-' + index);
+            const saveBtn = card.querySelector('#inputTitleSaveBtn-' + index);
+            if (!title || !edit) return;
+            edit.value = title.textContent || '';
+            title.style.display = 'none';
+            if (editRow) editRow.style.display = 'flex';
+            if (saveBtn) saveBtn.style.display = 'inline-flex';
+            edit.style.display = 'block';
+            edit.focus();
+            const len = edit.value.length;
+            try { edit.setSelectionRange(len, len); } catch (e) {}
+        }
+
+        function saveTitleEditFor(index) {
+            const card = document.querySelector('.clock-card[data-clock-index="' + index + '"]');
+            if (!card) return;
+            const title = card.querySelector('#inputTitle-' + index);
+            const edit = card.querySelector('#inputTitleEdit-' + index);
+            if (!title || !edit) return;
+            const val = (edit.value || '').trim();
+            title.textContent = val === '' ? 'Uhr' : val;
+            const editRow = card.querySelector('#title-edit-row-' + index) || card.querySelector('.title-edit-row');
+            const saveBtn = card.querySelector('#inputTitleSaveBtn-' + index);
+            if (editRow) editRow.style.display = 'none';
+            if (saveBtn) saveBtn.style.display = 'none';
+            edit.style.display = 'none';
+            title.style.display = 'block';
+            // persist in state
+            if (clockStates[index]) clockStates[index].title = title.textContent;
+        }
+
+        function cancelTitleEditFor(index) {
+            const card = document.querySelector('.clock-card[data-clock-index="' + index + '"]');
+            if (!card) return;
+            const title = card.querySelector('#inputTitle-' + index);
+            const edit = card.querySelector('#inputTitleEdit-' + index);
+            const editRow = card.querySelector('#title-edit-row-' + index) || card.querySelector('.title-edit-row');
+            const saveBtn = card.querySelector('#inputTitleSaveBtn-' + index);
+            if (editRow) editRow.style.display = 'none';
+            if (saveBtn) saveBtn.style.display = 'none';
+            if (edit) edit.style.display = 'none';
+            if (title) title.style.display = 'block';
+        }
+
+        function handleTitleKeyFor(e, index) {
+            if (e.key === 'Enter') {
+                e.target.blur();
+            } else if (e.key === 'Escape') {
+                cancelTitleEditFor(index);
+            }
+        }
+
+        function toggleTitleVisibility() {
+            // Toggle visibility for all clock titles (global setting)
+            const allTitles = Array.from(document.querySelectorAll('.inputTitle, #inputTitle'));
+            const first = allTitles.length > 0 ? allTitles[0] : null;
+            const currentlyVisible = first ? (window.getComputedStyle(first).display !== 'none') : true;
+            const newVisible = !currentlyVisible;
+            allTitles.forEach(el => {
+                try { el.style.display = newVisible ? 'block' : 'none'; } catch(e) {}
+            });
+            try { localStorage.setItem('inputTitleVisible', newVisible ? 'true' : 'false'); } catch (e) {}
+            renderTitleToggleText();
+        }
+
+        function applyTitleVisibility() {
+            try {
+                const stored = localStorage.getItem('inputTitleVisible');
+                const visible = stored === null ? true : stored === 'true';
+                const all = Array.from(document.querySelectorAll('.inputTitle, #inputTitle'));
+                all.forEach(el => { el.style.display = visible ? 'block' : 'none'; });
+            } catch (e) {}
+        }
+
+        function renderTitleToggleText() {
+            const btn = document.getElementById('titleToggleBtn');
+            if (!btn) return;
+            const stored = localStorage.getItem('inputTitleVisible');
+            const visible = stored === null ? true : stored === 'true';
+            btn.innerHTML = `${tl('showTitle')}: <span id="titleToggleStatus">${visible ? tl('on') : tl('off')}</span>`;
+        }
+
+        const MINECRAFT_ALBUM_PLAYLIST = [
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/01 - C418 - Key.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/02 - C418 - Door.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/03 - C418 - Subwoofer Lullaby.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/04 - C418 - Death.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/05 - C418 - Living Mice.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/06 - C418 - Moog City.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/07 - C418 - Haggstrom.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/08 - C418 - Minecraft.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/09 - C418 - Oxygène.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/10 - C418 - Équinoxe.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/11 - C418 - Mice on Venus.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/12 - C418 - Dry Hands.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/13 - C418 - Wet Hands.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/14 - C418 - Clark.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/15 - C418 - Chris.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/16 - C418 - Thirteen.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/17 - C418 - Excuse.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/18 - C418 - Sweden.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/19 - C418 - Cat.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/20 - C418 - Dog.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/21 - C418 - Danny.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/22 - C418 - Beginning.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/23 - C418 - Droopy Likes Ricochet.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/24 - C418 - Droopy Likes Your Face.mp3"
+        ];
+
+        // ===== TIMEZONE INIT =====
+        function getClockState(index) {
+            if (!clockStates[index]) {
+                clockStates[index] = {
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                };
+            }
+            return clockStates[index];
+        }
+
+        function getClockElement(index, baseId) {
+            const suffix = index === 0 ? '' : '-' + index;
+            return document.getElementById(baseId + suffix);
+        }
+
+        function decorateAnalogFace(face) {
+            if (!face || face.dataset.decorated === '1') return;
+
+            const minorTicks = document.createElement('div');
+            minorTicks.className = 'analog-ticks analog-ticks-minor';
+
+            const majorTicks = document.createElement('div');
+            majorTicks.className = 'analog-ticks analog-ticks-major';
+
+            const numbers = document.createElement('div');
+            numbers.className = 'analog-numbers';
+            for (let i = 1; i <= 12; i++) {
+                const number = document.createElement('span');
+                const angle = (i / 12) * (Math.PI * 2) - Math.PI / 2;
+                const x = 50 + Math.cos(angle) * 38;
+                const y = 50 + Math.sin(angle) * 38;
+                number.className = 'analog-number';
+                number.textContent = String(i);
+                number.style.left = x + '%';
+                number.style.top = y + '%';
+                numbers.appendChild(number);
+            }
+
+            face.insertBefore(minorTicks, face.firstChild);
+            face.insertBefore(majorTicks, face.firstChild);
+            face.insertBefore(numbers, face.firstChild);
+            face.dataset.decorated = '1';
+        }
+
+        function updateAnalogClock(index, hours, minutes, seconds) {
+            const hourHand = getClockElement(index, 'analogHourHand');
+            const minuteHand = getClockElement(index, 'analogMinuteHand');
+            const secondHand = getClockElement(index, 'analogSecondHand');
+            if (!hourHand || !minuteHand || !secondHand) return;
+
+            const hourNum = Number(hours) % 12;
+            const minuteNum = Number(minutes);
+            const secondNum = Number(seconds);
+
+            const hourAngle = hourNum * 30 + minuteNum * 0.5;
+            const minuteAngle = minuteNum * 6 + secondNum * 0.1;
+            const secondAngle = secondNum * 6;
+
+            hourHand.style.transform = 'translateX(-50%) rotate(' + hourAngle + 'deg)';
+            minuteHand.style.transform = 'translateX(-50%) rotate(' + minuteAngle + 'deg)';
+            secondHand.style.transform = 'translateX(-50%) rotate(' + secondAngle + 'deg)';
+        }
+
+        function initTimezoneSelect(index) {
+            const select = index === 0
+                ? document.getElementById('timezoneSelect')
+                : document.getElementById('timezoneSelect-' + index);
+            const currentTz = getClockState(index).timezone;
+            let found = false;
+            select.innerHTML = '';
+
+            TIMEZONE_LIST.forEach(tz => {
+                const option = document.createElement('option');
+                option.value = tz.value;
+                option.textContent = tz.label;
+                if (tz.value === currentTz) {
+                    option.selected = true;
+                    found = true;
+                }
+                select.appendChild(option);
+            });
+
+            if (!found) {
+                const option = document.createElement('option');
+                option.value = currentTz;
+                option.textContent = currentTz.replace(/_/g, ' ');
+                option.selected = true;
+                select.appendChild(option);
+            }
+
+            getClockState(index).timezone = select.value;
+            syncTimezoneControlWidths();
+            syncTimezoneControlHeights();
+        }
+
+        function detectTimezone(index) {
+            const currentTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const select = index === 0
+                ? document.getElementById('timezoneSelect')
+                : document.getElementById('timezoneSelect-' + index);
+            let found = false;
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value === currentTz) {
+                    select.selectedIndex = i;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                const option = document.createElement('option');
+                option.value = currentTz;
+                option.textContent = currentTz.replace(/_/g, ' ');
+                option.selected = true;
+                select.appendChild(option);
+            }
+
+            getClockState(index).timezone = currentTz;
+            syncTimezoneControlWidths();
+            syncTimezoneControlHeights();
+            updateClock(index);
+        }
+
+        function changeTimezone(index) {
+            const select = index === 0
+                ? document.getElementById('timezoneSelect')
+                : document.getElementById('timezoneSelect-' + index);
+            getClockState(index).timezone = select.value;
+            syncTimezoneControlWidths();
+            syncTimezoneControlHeights();
+            updateClock(index);
+        }
+
+        function addClock() {
+            const index = clockStates.length;
+            const state = {
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            };
+            clockStates.push(state);
+
+            const grid = document.getElementById('clockGrid');
+            const card = document.createElement('div');
+            card.className = 'container clock-card';
+            card.setAttribute('data-clock-index', index);
+            card.innerHTML = `
+                <button class="clock-close-btn" type="button" onclick="removeClock(${index})" title="Uhr schliessen">&times;</button>
+                <div id="inputContainer-${index}" style="width:100%; box-sizing:border-box; margin-bottom:6px;">
+                    <div id="inputTitle-${index}" class="inputTitle" tabindex="0" onclick="enableTitleEditFor(${index})" onkeydown="if(event.key==='Enter'){ enableTitleEditFor(${index}); }">Uhr</div>
+                    <div class="title-edit-row" id="title-edit-row-${index}" style="display:none; width:100%; box-sizing:border-box; gap:6px; align-items:center;">
+                        <input type="text" id="inputTitleEdit-${index}" placeholder="Titel eingeben" onblur="saveTitleEditFor(${index})" onkeydown="handleTitleKeyFor(event, ${index})">
+                        <button id="inputTitleSaveBtn-${index}" onclick="saveTitleEditFor(${index})" aria-label="Speichern">✔</button>
+                    </div>
+                </div>
+                <div class="clock-display" id="clockDisplay-${index}">
+                    <span id="clockHours-${index}">00</span><span class="seconds-separator no-blink" id="clockSeparator-${index}">:</span><span id="clockMinutes-${index}">00</span><span class="seconds-separator no-blink" id="clockSeparator2-${index}">:</span><span id="clockSeconds-${index}">00</span><span id="clockPeriod-${index}" class="clock-period"></span>
+                </div>
+                <div class="analog-clock-display" id="analogClockDisplay-${index}" aria-hidden="true">
+                    <div class="analog-clock-face" id="analogClockFace-${index}">
+                        <div class="analog-hand analog-hour" id="analogHourHand-${index}"></div>
+                        <div class="analog-hand analog-minute" id="analogMinuteHand-${index}"></div>
+                        <div class="analog-hand analog-second" id="analogSecondHand-${index}"></div>
+                        <div class="analog-center"></div>
+                    </div>
+                </div>
+                <div id="dateDisplay-${index}" class="date-display"></div>
+                <div class="tz-row">
+                    <select id="timezoneSelect-${index}" class="tz-select" onchange="changeTimezone(${index})"></select>
+                    <button type="button" onclick="detectTimezone(${index})" class="tz-detect-btn">Automatisch erkennen</button>
+                </div>
+                <div id="timezoneLabel-${index}" class="timezone-label"></div>
+            `;
+            grid.appendChild(card);
+            // initialize title in state
+            clockStates[index].title = 'Uhr';
+            // Apply global title visibility setting to the newly created clock
+            try {
+                const stored = localStorage.getItem('inputTitleVisible');
+                const visible = stored === null ? true : stored === 'true';
+                const titleEl = card.querySelector('#inputTitle-' + index) || card.querySelector('.inputTitle');
+                const editRow = card.querySelector('#title-edit-row-' + index) || card.querySelector('.title-edit-row');
+                if (titleEl) titleEl.style.display = visible ? 'block' : 'none';
+                if (editRow) editRow.style.display = 'none';
+            } catch (e) {}
+            initTimezoneSelect(index);
+            updateClock(index);
+            applyClockTextStyles();
+            applyTimezoneVisibility();
+            if (blinkEnabled) {
+                card.querySelectorAll('.seconds-separator').forEach(sep => sep.classList.remove('no-blink'));
+            }
+            applyAnalogMode();
+            updateClockCloseButtons();
+            requestAnimationFrame(syncContainerSizes);
+        }
+
+        function removeClock(index) {
+            const card = document.querySelector('.clock-card[data-clock-index="' + index + '"]');
+            if (!card) return;
+            const cards = document.querySelectorAll('.clock-card');
+            if (cards.length <= 1) return;
+
+            card.remove();
+            clockStates[index] = null;
+            updateClockCloseButtons();
+            requestAnimationFrame(syncContainerSizes);
+        }
+
+        function updateClockCloseButtons() {
+            const cards = document.querySelectorAll('.clock-card');
+            const showButtons = cards.length > 1;
+            cards.forEach(card => {
+                const closeBtn = card.querySelector('.clock-close-btn');
+                if (closeBtn) {
+                    closeBtn.style.display = showButtons ? 'flex' : 'none';
+                }
+            });
+        }
+
+        // ===== CLOCK =====
+        function updateClock(index) {
+            const state = getClockState(index);
+            const now = new Date();
+            const locale = currentLanguage === 'en' ? 'en-US' : 'de-DE';
+            const options = {
+                timeZone: state.timezone,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: use12HourFormat
+            };
+            const formatter = new Intl.DateTimeFormat(locale, options);
+            const parts = formatter.formatToParts(now);
+            
+            let hours = '00', minutes = '00', seconds = '00', dayPeriod = '';
+            parts.forEach(part => {
+                if (part.type === 'hour') hours = part.value;
+                else if (part.type === 'minute') minutes = part.value;
+                else if (part.type === 'second') seconds = part.value;
+                else if (part.type === 'dayPeriod') dayPeriod = part.value;
+            });
+
+            const hoursLabel = getClockElement(index, 'clockHours');
+            const minutesLabel = getClockElement(index, 'clockMinutes');
+            const secondsLabel = getClockElement(index, 'clockSeconds');
+            const periodLabel = getClockElement(index, 'clockPeriod');
+            if (hoursLabel) hoursLabel.textContent = hours;
+            if (minutesLabel) minutesLabel.textContent = minutes;
+            if (secondsLabel) secondsLabel.textContent = seconds;
+            if (periodLabel) periodLabel.textContent = use12HourFormat ? dayPeriod : '';
+            updateAnalogClock(index, hours, minutes, seconds);
+
+            const dateDisplay = getClockElement(index, 'dateDisplay');
+            const timezoneLabel = getClockElement(index, 'timezoneLabel');
+            if (dateDisplay) {
+                const dateOptions = {
+                    timeZone: state.timezone,
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                };
+                const dateStr = new Intl.DateTimeFormat(locale, dateOptions).format(now);
+                dateDisplay.textContent = dateStr;
+            }
+
+            if (timezoneLabel) {
+                const tzName = state.timezone.replace(/_/g, ' ');
+                timezoneLabel.textContent = tl('timezoneLabel') + ': ' + tzName;
+            }
+
+            syncContainerSizes();
+        }
+
+        function updateAllClocks() {
+            clockStates.forEach((state, index) => {
+                if (state && document.querySelector('.clock-card[data-clock-index="' + index + '"]')) {
+                    updateClock(index);
+                }
+            });
+            // Update tab title from first visible clock when enabled
+            try {
+                if (tabBlinkEnabled) {
+                    const card = document.querySelector('.clock-card');
+                    if (card) {
+                        const hours = card.querySelector('[id^="clockHours"]').textContent || '00';
+                        const mins = card.querySelector('[id^="clockMinutes"]').textContent || '00';
+                        const secs = card.querySelector('[id^="clockSeconds"]').textContent || '00';
+                        document.title = hours + ':' + mins + ':' + secs + ' - ' + BASE_TITLE;
+                    } else {
+                        document.title = BASE_TITLE;
+                    }
+                } else {
+                    document.title = BASE_TITLE;
+                }
+            } catch (e) {}
+        }
+
+        // ===== MUSIC FUNCTIONS =====
+        function loadCurrentTrack() {
+            const musicAudio = document.getElementById('musicAudio');
+            if (musicPlaylist.length > 0) {
+                musicAudio.src = musicPlaylist[currentTrackIndex];
+                musicAudio.load();
+            }
+        }
+
+        function shufflePlaylist() {
+            for (let i = musicPlaylist.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [musicPlaylist[i], musicPlaylist[j]] = [musicPlaylist[j], musicPlaylist[i]];
+            }
+            currentTrackIndex = 0;
+        }
+
+        function toggleMusic() {
+            musicEnabled = !musicEnabled;
+            if (musicEnabled) {
+                const musicAudio = document.getElementById('musicAudio');
+                musicPreviewPlaying = false;
+                musicAudio.currentTime = 0;
+                musicAudio.play().catch(() => {});
+            } else {
+                document.getElementById('musicAudio').pause();
+            }
+            document.getElementById('musicStatus').textContent = musicEnabled ? 'Ein' : 'Aus';
+            updatePreviewMusicBtn();
+        }
+
+        function changeMusicSound() {
+            const musicAudio = document.getElementById('musicAudio');
+            const select = document.getElementById('musicSound');
+            const fileInput = document.getElementById('musicFile');
+            musicAudio.pause();
+            musicAudio.currentTime = 0;
+            musicPreviewPlaying = false;
+            musicAudio.removeEventListener('ended', nextMusicTrack);
+
+            if (select.value === 'upload') {
+                fileInput.style.display = 'block';
+                fileInput.value = '';
+                musicPlaylist = [];
+                musicAudio.src = '';
+                document.getElementById('musicFileName').textContent = '';
+            } else if (select.value === 'Kahoot Answer') {
+                fileInput.style.display = 'none';
+                document.getElementById('musicFileName').textContent = '';
+                musicPlaylist = [...KAHOT_ANSWER_PLAYLIST];
+                isMusicShuffle = true;
+                shufflePlaylist();
+                loadCurrentTrack();
+            } else if (select.value === 'Minecraft Album') {
+                fileInput.style.display = 'none';
+                document.getElementById('musicFileName').textContent = '';
+                musicPlaylist = [...MINECRAFT_ALBUM_PLAYLIST];
+                isMusicShuffle = false;
+                currentTrackIndex = 0;
+                loadCurrentTrack();
+            } else {
+                fileInput.style.display = 'none';
+                document.getElementById('musicFileName').textContent = '';
+                musicPlaylist = [select.value];
+                currentTrackIndex = 0;
+                isMusicShuffle = false;
+                loadCurrentTrack();
+            }
+
+            if (musicPlaylist.length > 1) {
+                musicAudio.loop = false;
+                musicAudio.addEventListener('ended', nextMusicTrack);
+            } else {
+                musicAudio.loop = true;
+            }
+            musicAudio.load();
+
+            if (musicEnabled && musicPlaylist.length > 0) {
+                musicAudio.play().catch((e) => showError('Hintergrundmusik nicht verfügbar'));
+            }
+            updatePreviewMusicBtn();
+        }
+
+        function nextMusicTrack() {
+            const musicAudio = document.getElementById('musicAudio');
+            if (musicPlaylist.length <= 1) return;
+            if (isMusicShuffle) {
+                currentTrackIndex = Math.floor(Math.random() * musicPlaylist.length);
+            } else {
+                currentTrackIndex = (currentTrackIndex + 1) % musicPlaylist.length;
+            }
+            loadCurrentTrack();
+            musicAudio.play().catch(() => {});
+        }
+
+        function previewMusic() {
+            const audio = document.getElementById('musicAudio');
+            const btn = document.getElementById('previewMusicBtn');
+            if (musicEnabled) {
+                return;
+            }
+            if (musicPlaylist.length === 0 && !audio.src) return;
+
+            if (musicPreviewPlaying) {
+                audio.pause();
+                musicPreviewPlaying = false;
+                btn.textContent = tl('previewMusic');
+                return;
+            }
+
+            if (musicPlaylist.length > 0) {
+                audio.src = musicPlaylist[0];
+            }
+            audio.loop = false;
+            audio.currentTime = 0;
+            audio.play().catch(e => console.log('Preview failed:', e));
+            musicPreviewPlaying = true;
+            btn.textContent = tl('stopPreview');
+
+            const endHandler = () => {
+                musicPreviewPlaying = false;
+                btn.textContent = tl('previewMusic');
+                audio.removeEventListener('ended', endHandler);
+            };
+            audio.addEventListener('ended', endHandler, {once: true});
+        }
+
+        function updatePreviewMusicBtn() {
+            const btn = document.getElementById('previewMusicBtn');
+            if (btn) {
+                const hasSource = !!document.getElementById('musicAudio').src;
+                btn.disabled = musicEnabled || !hasSource;
+                if (musicEnabled) {
+                    btn.textContent = tl('previewLocked');
+                } else if (!btn.disabled && musicPreviewPlaying) {
+                    btn.textContent = tl('stopPreview');
+                } else if (!btn.disabled) {
+                    btn.textContent = tl('previewMusic');
+                } else {
+                    btn.textContent = tl('previewMusic');
+                }
+            }
+        }
+
+        function setMusicVolume() {
+            document.getElementById('musicAudio').volume = document.getElementById('musicVolume').value;
+        }
+
+        function muteMusic() {
+            document.getElementById('musicVolume').value = 0;
+            document.getElementById('musicAudio').volume = 0;
+        }
+
+        // ===== DISPLAY SETTINGS =====
+        function rgbToHex(color) {
+            const values = color.match(/\d+/g);
+            if (!values || values.length < 3) return '#333333';
+            const [r, g, b] = values.slice(0, 3).map(Number);
+            return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+        }
+
+        function measureTextPx(text, font) {
+            if (!measureTextPx.canvas) {
+                measureTextPx.canvas = document.createElement('canvas');
+                measureTextPx.ctx = measureTextPx.canvas.getContext('2d');
+            }
+            measureTextPx.ctx.font = font;
+            return measureTextPx.ctx.measureText(text).width;
+        }
+
+        function isCompactMobileView() {
+            return window.innerWidth <= 640;
+        }
+
+        function syncTimezoneControlWidths() {
+            document.querySelectorAll('.tz-row').forEach(row => {
+                const select = row.querySelector('.tz-select');
+                const button = row.querySelector('.tz-detect-btn');
+                if (!select || !button) return;
+
+                if (isCompactMobileView()) {
+                    select.style.width = '100%';
+                    button.style.width = '100%';
+                    return;
+                }
+
+                const selectStyle = getComputedStyle(select);
+                const selectedText = select.options[select.selectedIndex]
+                    ? select.options[select.selectedIndex].textContent
+                    : '';
+                const selectTextWidth = measureTextPx(selectedText, selectStyle.font);
+                const selectPadding = (parseFloat(selectStyle.paddingLeft) || 0) + (parseFloat(selectStyle.paddingRight) || 0);
+                const selectBorder = (parseFloat(selectStyle.borderLeftWidth) || 0) + (parseFloat(selectStyle.borderRightWidth) || 0);
+                const selectArrowSpace = 34;
+                const selectWidth = Math.max(110, Math.ceil(selectTextWidth + selectPadding + selectBorder + selectArrowSpace));
+                select.style.width = selectWidth + 'px';
+
+                const buttonStyle = getComputedStyle(button);
+                const buttonTextWidth = measureTextPx(button.textContent.trim(), buttonStyle.font);
+                const buttonPadding = (parseFloat(buttonStyle.paddingLeft) || 0) + (parseFloat(buttonStyle.paddingRight) || 0);
+                const buttonBorder = (parseFloat(buttonStyle.borderLeftWidth) || 0) + (parseFloat(buttonStyle.borderRightWidth) || 0);
+                const buttonWidth = Math.ceil(buttonTextWidth + buttonPadding + buttonBorder);
+                button.style.width = buttonWidth + 'px';
+            });
+        }
+
+        function syncTimezoneControlHeights() {
+            document.querySelectorAll('.tz-row').forEach(row => {
+                const select = row.querySelector('.tz-select');
+                const button = row.querySelector('.tz-detect-btn');
+                if (!select || !button) return;
+
+                if (isCompactMobileView()) {
+                    select.style.height = '42px';
+                    button.style.height = '42px';
+                    return;
+                }
+
+                const selectStyle = getComputedStyle(select);
+                const buttonStyle = getComputedStyle(button);
+
+                const selectFont = parseFloat(selectStyle.fontSize) || 13;
+                const buttonFont = parseFloat(buttonStyle.fontSize) || 12;
+                const textHeight = Math.max(
+                    Math.ceil(selectFont * 1.25),
+                    Math.ceil(buttonFont * 1.25)
+                );
+
+                const selectPadY = (parseFloat(selectStyle.paddingTop) || 0) + (parseFloat(selectStyle.paddingBottom) || 0);
+                const buttonPadY = (parseFloat(buttonStyle.paddingTop) || 0) + (parseFloat(buttonStyle.paddingBottom) || 0);
+                const selectBorderY = (parseFloat(selectStyle.borderTopWidth) || 0) + (parseFloat(selectStyle.borderBottomWidth) || 0);
+                const buttonBorderY = (parseFloat(buttonStyle.borderTopWidth) || 0) + (parseFloat(buttonStyle.borderBottomWidth) || 0);
+
+                const selectHeight = textHeight + selectPadY + selectBorderY;
+                const buttonHeight = textHeight + buttonPadY + buttonBorderY;
+                const controlHeight = Math.max(selectHeight, buttonHeight);
+
+                select.style.height = controlHeight + 'px';
+                button.style.height = controlHeight + 'px';
+            });
+        }
+
+        function updateScrollState() {
+            const cards = document.querySelectorAll('.container');
+            let needsScroll = false;
+            cards.forEach(card => {
+                const rect = card.getBoundingClientRect();
+                const cardBottomOnPage = rect.bottom + window.scrollY;
+                if (cardBottomOnPage > window.innerHeight) {
+                    needsScroll = true;
+                }
+            });
+
+            if (needsScroll) {
+                document.body.classList.add('scroll-enabled');
+                return;
+            }
+
+            // When content shrinks while user is scrolled down, move to top first,
+            // then lock scrolling so the viewport does not remain stuck mid-page.
+            if (window.scrollY > 0) {
+                document.body.classList.add('scroll-enabled');
+                window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+                requestAnimationFrame(() => {
+                    if (window.scrollY <= 1) {
+                        document.body.classList.remove('scroll-enabled');
+                    }
+                });
+                return;
+            }
+
+            document.body.classList.remove('scroll-enabled');
+        }
+
+        function updateClockGridLayout() {
+            const grid = document.getElementById('clockGrid');
+            const cards = Array.from(grid.querySelectorAll('.clock-card'));
+            if (cards.length === 0) return;
+
+            if (window.innerWidth <= 900) {
+                grid.style.marginTop = window.innerWidth <= 640 ? '72px' : '80px';
+                return;
+            }
+
+            const baseTop = 80;
+            const bottomReserved = 100;
+            const rowTops = new Set(cards.map(card => card.offsetTop));
+            const hasMultipleRows = rowTops.size > 1;
+
+            if (hasMultipleRows) {
+                grid.style.marginTop = baseTop + 'px';
+                return;
+            }
+
+            const gridHeight = grid.getBoundingClientRect().height;
+            const availableHeight = window.innerHeight - baseTop - bottomReserved;
+            const extraTop = Math.max(0, Math.floor((availableHeight - gridHeight) / 2));
+            grid.style.marginTop = (baseTop + extraTop) + 'px';
+        }
+
+        function applyClockTextStyles() {
+            const fontSizeControl = document.getElementById('clockFontSize');
+            const colorControl = document.getElementById('clockColor');
+            const isDark = document.body.classList.contains('dark-mode');
+            const requestedClockSize = fontSizeControl ? parseFloat(fontSizeControl.value) : 150;
+            const isMobile = isCompactMobileView();
+            const mobileClockCap = Math.max(44, Math.min(94, Math.floor(window.innerWidth * 0.23)));
+            const clockSize = isMobile ? Math.min(requestedClockSize, mobileClockCap) : requestedClockSize;
+            const scale = clockSize / 150;
+            const fontSize = clockSize + 'px';
+            const textColor = colorControl ? colorControl.value : (isDark ? '#e0e0e0' : '#333333');
+
+            const dateSize = Math.max(isMobile ? 15 : 10, Math.round(24 * scale));
+            const timezoneSize = Math.max(isMobile ? 12 : 9, Math.round(16 * scale));
+            const timezoneSelectSize = Math.max(isMobile ? 13 : 9, Math.round(13 * scale));
+            const timezoneButtonSize = Math.max(isMobile ? 13 : 8, Math.round(12 * scale));
+            const timezoneControlPaddingY = Math.max(isMobile ? 8 : 4, Math.round(6 * scale));
+            const timezoneControlPaddingX = Math.max(6, Math.round(10 * scale));
+
+            document.querySelectorAll('.clock-display').forEach(el => {
+                el.style.fontSize = fontSize;
+                el.style.color = textColor;
+            });
+
+            // Scale card titles and edit controls relative to clock size
+            try {
+                const scale = clockSize / 150;
+                const titleSize = Math.max(12, Math.round(20 * scale));
+                const editFont = Math.max(12, Math.round(14 * scale));
+                document.querySelectorAll('.inputTitle, #inputTitle').forEach(el => el.style.fontSize = titleSize + 'px');
+                document.querySelectorAll('.title-edit-row input').forEach(el => el.style.fontSize = editFont + 'px');
+                document.querySelectorAll('#inputTitleSaveBtn').forEach(el => el.style.fontSize = editFont + 'px');
+            } catch (e) {}
+
+            const analogSize = Math.max(isMobile ? 130 : 160, Math.min(isMobile ? 280 : 420, Math.round(clockSize * 1.45)));
+            document.querySelectorAll('.analog-clock-display').forEach(el => {
+                el.style.color = textColor;
+            });
+            document.querySelectorAll('.analog-clock-face').forEach(el => {
+                el.style.width = analogSize + 'px';
+                el.style.height = analogSize + 'px';
+                const analogNumberSize = Math.max(9, Math.min(18, Math.round(analogSize * 0.06)));
+                el.style.setProperty('--analog-number-size', analogNumberSize + 'px');
+                const handScale = analogSize / 220;
+                const hourWidth = Math.max(7, Math.min(16, Math.round(10 * handScale)));
+                const minuteWidth = Math.max(5, Math.min(12, Math.round(7 * handScale)));
+                const secondWidth = Math.max(2, Math.min(5, Math.round(2 * handScale)));
+                const handBorder = Math.max(1, Math.min(3, Math.round(2 * handScale * 0.85)));
+                el.style.setProperty('--analog-hour-width', hourWidth + 'px');
+                el.style.setProperty('--analog-minute-width', minuteWidth + 'px');
+                el.style.setProperty('--analog-second-width', secondWidth + 'px');
+                el.style.setProperty('--analog-hand-border', handBorder + 'px');
+            });
+
+            document.querySelectorAll('.date-display').forEach(el => {
+                el.style.fontSize = dateSize + 'px';
+                el.style.color = textColor;
+            });
+
+            document.querySelectorAll('.timezone-label').forEach(el => {
+                el.style.fontSize = timezoneSize + 'px';
+                el.style.color = textColor;
+            });
+
+            document.querySelectorAll('.tz-select').forEach(el => {
+                el.style.fontSize = timezoneSelectSize + 'px';
+                el.style.padding = timezoneControlPaddingY + 'px';
+            });
+
+            document.querySelectorAll('.tz-detect-btn').forEach(el => {
+                el.style.fontSize = timezoneButtonSize + 'px';
+                el.style.padding = timezoneControlPaddingY + 'px ' + timezoneControlPaddingX + 'px';
+            });
+
+            syncTimezoneControlWidths();
+            syncTimezoneControlHeights();
+
+            document.querySelectorAll('.date-display, .timezone-label').forEach(el => {
+                el.style.color = textColor;
+            });
+        }
+
+        function applyAnalogMode() {
+            document.body.classList.toggle('analog-mode', isAnalogMode);
+            const status = document.getElementById('analogModeStatus');
+            const label = document.getElementById('sizeSettingLabel');
+            if (status) status.textContent = isAnalogMode ? tl('on') : tl('off');
+            if (label) label.textContent = isAnalogMode ? tl('clockSize') : tl('textSize');
+
+            document.querySelectorAll('.analog-clock-face').forEach(face => {
+                decorateAnalogFace(face);
+            });
+
+            document.querySelectorAll('.analog-clock-display').forEach(el => {
+                el.setAttribute('aria-hidden', isAnalogMode ? 'false' : 'true');
+            });
+
+            applyClockTextStyles();
+            requestAnimationFrame(syncContainerSizes);
+        }
+
+        function toggleAnalogMode() {
+            isAnalogMode = !isAnalogMode;
+            applyAnalogMode();
+        }
+
+        function applyTimezoneVisibility() {
+            document.querySelectorAll('.tz-row').forEach(el => {
+                el.style.display = showTimezoneControls ? 'flex' : 'none';
+            });
+            document.querySelectorAll('.timezone-label').forEach(el => {
+                el.style.display = showTimezoneLabel ? 'block' : 'none';
+            });
+
+            const controlsStatus = document.getElementById('timezoneControlsStatus');
+            const labelStatus = document.getElementById('timezoneLabelStatus');
+            if (controlsStatus) controlsStatus.textContent = showTimezoneControls ? tl('on') : tl('off');
+            if (labelStatus) labelStatus.textContent = showTimezoneLabel ? tl('on') : tl('off');
+
+            requestAnimationFrame(syncContainerSizes);
+        }
+
+        function toggleTimezoneControls() {
+            showTimezoneControls = !showTimezoneControls;
+            applyTimezoneVisibility();
+        }
+
+        function toggleTimezoneLabel() {
+            showTimezoneLabel = !showTimezoneLabel;
+            applyTimezoneVisibility();
+        }
+
+        function syncContainerSizes() {
+            document.querySelectorAll('.container').forEach(container => {
+                const clockDisplay = container.querySelector('.clock-display');
+                const analogDisplay = container.querySelector('.analog-clock-display');
+                const dateDisplay = container.querySelector('.date-display');
+                const timezoneLabel = container.querySelector('.timezone-label');
+                const tzRow = container.querySelector('.tz-row');
+                if (clockDisplay) {
+                    const clockSpans = Array.from(clockDisplay.querySelectorAll('span'));
+                    let spanBoundWidth = 0;
+                    if (clockSpans.length > 0) {
+                        const firstRect = clockSpans[0].getBoundingClientRect();
+                        const lastRect = clockSpans[clockSpans.length - 1].getBoundingClientRect();
+                        spanBoundWidth = Math.max(0, lastRect.right - firstRect.left);
+                    }
+
+                    const digitalWidth = Math.max(clockDisplay.scrollWidth, clockDisplay.getBoundingClientRect().width, spanBoundWidth);
+                    const digitalHeight = Math.max(clockDisplay.scrollHeight, clockDisplay.getBoundingClientRect().height);
+                    const analogWidth = analogDisplay ? Math.max(analogDisplay.scrollWidth, analogDisplay.getBoundingClientRect().width) : 0;
+                    const analogHeight = analogDisplay ? Math.max(analogDisplay.scrollHeight, analogDisplay.getBoundingClientRect().height) : 0;
+                    const clockWidth = Math.max(digitalWidth, analogWidth);
+                    const clockHeight = Math.max(digitalHeight, analogHeight);
+                    const dateWidth = dateDisplay ? Math.max(dateDisplay.scrollWidth, dateDisplay.getBoundingClientRect().width) : 0;
+                    const dateHeight = dateDisplay ? Math.max(dateDisplay.scrollHeight, dateDisplay.getBoundingClientRect().height) : 0;
+                    const labelWidth = timezoneLabel ? Math.max(timezoneLabel.scrollWidth, timezoneLabel.getBoundingClientRect().width) : 0;
+                    const labelHeight = timezoneLabel ? Math.max(timezoneLabel.scrollHeight, timezoneLabel.getBoundingClientRect().height) : 0;
+                    const tzRowWidth = tzRow ? Math.max(tzRow.scrollWidth, tzRow.getBoundingClientRect().width) : 0;
+                    const tzRowHeight = tzRow ? Math.max(tzRow.scrollHeight, tzRow.getBoundingClientRect().height) : 0;
+
+                    const verticalPadding = 50;
+                    const contentHeight = clockHeight + dateHeight + tzRowHeight + labelHeight;
+                    container.style.minHeight = Math.max(210, Math.ceil(contentHeight + verticalPadding)) + 'px';
+                    container.style.height = 'auto';
+                }
+            });
+
+            updateClockGridLayout();
+            updateScrollState();
+        }
+
+        function setClockFontSize() {
+            applyClockTextStyles();
+            requestAnimationFrame(syncContainerSizes);
+        }
+
+        function resetClockFontSize() {
+            const defaultSize = 150;
+            document.getElementById('clockFontSize').value = defaultSize;
+            applyClockTextStyles();
+            requestAnimationFrame(syncContainerSizes);
+        }
+
+        function toggleColorMenu() {
+            const menu = document.getElementById('colorMenu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function pickColor(color) {
+            document.getElementById('clockColor').value = color;
+            applyClockTextStyles();
+            try { localStorage.setItem('clockColorCustom','true'); } catch(e) {}
+        }
+
+        function toggleContainerColorMenu() {
+            const menu = document.getElementById('containerColorMenu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function pickContainerColor(color) {
+            document.getElementById('containerColor').value = color;
+            document.querySelectorAll('.container').forEach(el => {
+                el.style.background = color;
+            });
+            try { localStorage.setItem('containerColorCustom','true'); } catch(e) {}
+        }
+
+        function toggleBgColorMenu() {
+            const menu = document.getElementById('bgColorMenu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function pickBgColor(color) {
+            document.getElementById('bgColor').value = color;
+            document.body.style.background = color;
+            try { localStorage.setItem('bgColorCustom','true'); } catch(e) {}
+        }
+
+        function resetColors() {
+            const isDark = document.body.classList.contains('dark-mode');
+            
+            document.body.style.background = isDark 
+                ? 'linear-gradient(135deg, #0c1120 0%, #170f20 100%)' 
+                : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            document.getElementById('bgColor').value = isDark ? '#0c1120' : '#667eea';
+            
+            const containerColor = isDark ? '#1e1e2f' : '#ffffff';
+            document.querySelectorAll('.container').forEach(el => {
+                el.style.background = containerColor;
+            });
+            document.getElementById('containerColor').value = containerColor;
+            
+            const clockColor = isDark ? '#e0e0e0' : '#333333';
+            document.getElementById('clockColor').value = clockColor;
+            applyClockTextStyles();
+            try {
+                localStorage.removeItem('clockColorCustom');
+                localStorage.removeItem('containerColorCustom');
+                localStorage.removeItem('bgColorCustom');
+            } catch(e) {}
+        }
+
+        function toggleBlink() {
+            blinkEnabled = !blinkEnabled;
+            document.getElementById('blinkStatus').textContent = blinkEnabled ? 'Ein' : 'Aus';
+            const separators = document.querySelectorAll('.seconds-separator');
+            separators.forEach(sep => {
+                if (blinkEnabled) {
+                    sep.classList.remove('no-blink');
+                } else {
+                    sep.classList.add('no-blink');
+                }
+            });
+        }
+
+        function toggleTabBlink() {
+            tabBlinkEnabled = !tabBlinkEnabled;
+            try { localStorage.setItem('tabBlinkEnabled', tabBlinkEnabled ? 'true' : 'false'); } catch (e) {}
+            const btn = document.getElementById('tabBlinkBtn');
+            if (btn) btn.innerHTML = `${tl('tabBlink')}: <span id="tabBlinkStatus">${tabBlinkEnabled ? tl('on') : tl('off')}</span>`;
+            if (!tabBlinkEnabled) document.title = BASE_TITLE;
+        }
+
+        function toggleHourFormat() {
+            use12HourFormat = !use12HourFormat;
+            const status = document.getElementById('hourFormatStatus');
+            if (status) {
+                status.textContent = use12HourFormat ? '12h' : '24h';
+            }
+            updateAllClocks();
+        }
+
+// ===== ERROR HANDLING =====
+        function showError(msg) {
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            errorText.textContent = msg;
+            errorDiv.style.display = 'block';
+            errorDiv.style.left = '20px';
+            bringToFront(errorDiv);
+            let timeoutId;
+            const startTimeout = () => {
+                timeoutId = setTimeout(() => {
+                    if (errorDiv.style.display !== 'none') {
+                        clearError();
+                    }
+                }, 6000);
+            };
+            const pauseTimeout = () => clearTimeout(timeoutId);
+            const resumeTimeout = () => startTimeout();
+            errorDiv.onmouseenter = pauseTimeout;
+            errorDiv.onmouseleave = resumeTimeout;
+            startTimeout();
+        }
+
+        function handleUnderstood() {
+            clearError();
+        }
+
+        function clearError() {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.style.opacity = '0';
+            errorDiv.style.transition = 'opacity 0.5s ease-out';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+                errorDiv.style.opacity = '1';
+            }, 500);
+        }
+
+        function initMusicHint() {
+            const hint = document.getElementById('musicHint');
+            if (!hint) return;
+
+            const collapseHint = () => {
+                hint.classList.remove('expanding');
+                hint.classList.add('collapsing');
+                window.setTimeout(() => {
+                    hint.classList.remove('collapsing');
+                    hint.classList.add('collapsed');
+                }, 260);
+            };
+
+            const scheduleCollapse = () => {
+                if (hint._collapseTimer) {
+                    clearTimeout(hint._collapseTimer);
+                }
+                hint._collapseTimer = setTimeout(collapseHint, 10000);
+            };
+
+            const expandHint = () => {
+                hint.classList.remove('collapsed', 'collapsing');
+                hint.classList.add('expanding');
+                window.setTimeout(() => {
+                    hint.classList.remove('expanding');
+                }, 280);
+                scheduleCollapse();
+            };
+
+            scheduleCollapse();
+
+            hint.addEventListener('click', () => {
+                if (hint.classList.contains('collapsed')) {
+                    expandHint();
+                }
+            });
+
+            hint.addEventListener('keydown', (event) => {
+                if (!hint.classList.contains('collapsed')) return;
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    expandHint();
+                }
+            });
+        }
+
+        // ===== TOGGLE FUNCTIONS =====
+        function togglePanel() {
+            const content = document.getElementById('panelContent');
+            const arrow = document.getElementById('panelArrow');
+            content.classList.toggle('collapsed');
+            arrow.classList.toggle('collapsed');
+        }
+
+        function toggleSection(id) {
+            const content = document.getElementById('content-' + id);
+            const arrow = document.getElementById('arrow-' + id);
+            content.classList.toggle('collapsed');
+            arrow.classList.toggle('collapsed');
+        }
+
+        function toggleSettingsPanel() {
+            const panel = document.querySelector('.sound-panel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                bringToFront(panel);
+            } else {
+                panel.style.display = 'none';
+            }
+            try { localStorage.setItem('clockPanelVisible', panel.style.display === 'block' ? 'true' : 'false'); } catch (e) {}
+        }
+
+        function showProgramHelp() {
+            const overlay = document.getElementById('helpOverlay');
+            const title = document.getElementById('helpTitle');
+            const body = document.getElementById('helpBody');
+            title.textContent = tl('toolbarTitle').replace(/<br>/g, ' ');
+            body.innerHTML = '<section><h3>' + tl('helpUseTitle') + '</h3><ul><li>' + tl('helpUseItem1') + '</li><li>' + tl('helpUseItem2') + '</li><li>' + tl('helpUseItem3') + '</li><li>' + tl('helpUseItem4') + '</li><li>' + tl('helpUseItem5') + '</li></ul></section><section><h3>' + tl('helpFeaturesTitle') + '</h3><ul><li>' + tl('helpFeaturesItem1') + '</li><li>' + tl('helpFeaturesItem2') + '</li><li>' + tl('helpFeaturesItem3') + '</li><li>' + tl('helpFeaturesItem4') + '</li><li>' + tl('helpFeaturesItem5') + '</li><li>' + tl('helpFeaturesItem6') + '</li></ul></section><section><h3>' + tl('helpBrowserTitle') + '</h3><ul><li>' + tl('helpBrowserItem1') + '</li><li>' + tl('helpBrowserItem2') + '</li><li>' + tl('helpBrowserItem3') + '</li></ul></section>';
+            overlay.classList.add('visible');
+            overlay.setAttribute('aria-hidden', 'false');
+        }
+
+        function hideProgramHelp() {
+            const overlay = document.getElementById('helpOverlay');
+            overlay.classList.remove('visible');
+            overlay.setAttribute('aria-hidden', 'true');
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                hideProgramHelp();
+            }
+        });
+
+        const moonSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+        const sunSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
+
+        function toggleDarkMode() {
+            const clockColorControl = document.getElementById('clockColor');
+            const previousColor = (clockColorControl.value || '').toLowerCase();
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            document.getElementById('darkModeStatus').textContent = isDark ? tl('on') : tl('off');
+
+            // Keep default text colors consistent with the other apps when switching themes.
+            if (isDark && previousColor === '#333333') {
+                clockColorControl.value = '#e0e0e0';
+            } else if (!isDark && previousColor === '#e0e0e0') {
+                clockColorControl.value = '#333333';
+            }
+
+            applyClockTextStyles();
+            // preserve user custom colors when switching theme
+            const isCustomClock = (function(){ try{ return localStorage.getItem('clockColorCustom') === 'true'; }catch(e){return false;} })();
+            const isCustomContainer = (function(){ try{ return localStorage.getItem('containerColorCustom') === 'true'; }catch(e){return false;} })();
+            const isCustomBg = (function(){ try{ return localStorage.getItem('bgColorCustom') === 'true'; }catch(e){return false;} })();
+
+            if (!isCustomBg) {
+                document.body.style.background = isDark 
+                    ? 'linear-gradient(135deg, #0c1120 0%, #170f20 100%)' 
+                    : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                try { document.getElementById('bgColor').value = isDark ? '#0c1120' : '#667eea'; } catch(e) {}
+            }
+
+            if (!isCustomContainer) {
+                const containerColor = isDark ? '#1e1e2f' : '#ffffff';
+                document.querySelectorAll('.container').forEach(el => {
+                    el.style.background = containerColor;
+                });
+                try { document.getElementById('containerColor').value = containerColor; } catch(e) {}
+            }
+
+            if (!isCustomClock) {
+                const defaultClock = isDark ? '#e0e0e0' : '#333333';
+                document.getElementById('clockColor').value = defaultClock;
+                applyClockTextStyles();
+            } else {
+                applyClockTextStyles();
+            }
+            const toolbarBtn = document.getElementById('darkModeToggleBtn');
+            if (toolbarBtn) {
+                toolbarBtn.innerHTML = isDark ? moonSvg : sunSvg;
+                toolbarBtn.title = isDark ? tl('darkModeTooltip') : tl('lightModeTooltip');
+            }
+        }
+
+        // ===== Z-INDEX MANAGEMENT =====
+        const TOOLBAR_Z_INDEX = 2147483647;
+        let highestZIndex = 10;
+
+        function bringToFront(element) {
+            highestZIndex = Math.min(highestZIndex + 1, TOOLBAR_Z_INDEX - 1);
+            element.style.zIndex = highestZIndex;
+        }
+
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('.container, .sound-panel');
+            if (target) {
+                bringToFront(target);
+            }
+        }, true);
+
+        // ===== FAVICON CLOCK =====
+        (function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                return;
+            }
+            
+            function updateFaviconClock() {
+                const now = new Date();
+                const isDark = document.body.classList.contains('dark-mode');
+                
+                ctx.fillStyle = isDark ? '#1e1e2f' : '#ffffff';
+                ctx.beginPath();
+                ctx.arc(32, 32, 32, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.strokeStyle = isDark ? '#4a5a9e' : '#667eea';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(32, 32, 30, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                ctx.strokeStyle = isDark ? '#e0e0e0' : '#333333';
+                ctx.lineWidth = 1.5;
+                for (let i = 0; i < 12; i++) {
+                    const angle = (i * 30 - 90) * Math.PI / 180;
+                    const x1 = 32 + 24 * Math.cos(angle);
+                    const y1 = 32 + 24 * Math.sin(angle);
+                    const x2 = 32 + 28 * Math.cos(angle);
+                    const y2 = 32 + 28 * Math.sin(angle);
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                }
+                
+                const hours = now.getHours() % 12;
+                const minutes = now.getMinutes();
+                const seconds = now.getSeconds();
+                
+                const hourAngle = ((hours + minutes / 60) * 30 - 90) * Math.PI / 180;
+                ctx.strokeStyle = isDark ? '#e0e0e0' : '#333333';
+                ctx.lineWidth = 5;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(32, 32);
+                ctx.lineTo(32 + 16 * Math.cos(hourAngle), 32 + 16 * Math.sin(hourAngle));
+                ctx.stroke();
+                
+                const minuteAngle = ((minutes + seconds / 60) * 6 - 90) * Math.PI / 180;
+                ctx.strokeStyle = isDark ? '#e0e0e0' : '#333333';
+                ctx.lineWidth = 3.5;
+                ctx.beginPath();
+                ctx.moveTo(32, 32);
+                ctx.lineTo(32 + 22 * Math.cos(minuteAngle), 32 + 22 * Math.sin(minuteAngle));
+                ctx.stroke();
+                
+                const secondAngle = (seconds * 6 - 90) * Math.PI / 180;
+                ctx.strokeStyle = '#ff0000';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(32, 32);
+                ctx.lineTo(32 + 24 * Math.cos(secondAngle), 32 + 24 * Math.sin(secondAngle));
+                ctx.stroke();
+                
+                ctx.fillStyle = isDark ? '#4a5a9e' : '#667eea';
+                ctx.beginPath();
+                ctx.arc(32, 32, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                let link = document.getElementById('favicon');
+                if (!link) {
+                    link = document.createElement('link');
+                    link.id = 'favicon';
+                    link.rel = 'icon';
+                    link.type = 'image/png';
+                    document.head.appendChild(link);
+                }
+                try {
+                    link.href = canvas.toDataURL('image/png');
+                } catch (err) {
+                    // Ignore favicon update errors in restricted browser/file contexts.
+                }
+            }
+            
+            updateFaviconClock();
+            setInterval(updateFaviconClock, 1000);
+        })();
+
+        // ===== INIT =====
+        const musicAudio = document.getElementById('musicAudio');
+        
+        function handleAudioError(e) {
+            const src = e.target.src.split('?')[0].split('#')[0];
+            showError('Sound-Datei nicht gefunden: ' + decodeURIComponent(src.split('/').pop()));
+        }
+        
+        musicAudio.addEventListener('error', handleAudioError);
+        
+        // File upload listeners
+        document.getElementById('musicFile').addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                const musicAudio = document.getElementById('musicAudio');
+                musicAudio.src = url;
+                document.getElementById('musicFileName').textContent = file.name;
+                if (musicEnabled) {
+                    musicAudio.currentTime = 0;
+                    musicAudio.play().catch(() => {});
+                }
+            } else {
+                document.getElementById('musicFileName').textContent = '';
+            }
+            this.value = '';
+            updatePreviewMusicBtn();
+        });
+
+        // Initialize timezone
+        getClockState(0);
+        initTimezoneSelect(0);
+
+        // Sync style controls with visible default text color.
+        const initialClockColor = rgbToHex(getComputedStyle(document.querySelector('.clock-display')).color);
+        document.getElementById('clockColor').value = initialClockColor;
+        applyClockTextStyles();
+        applyAnalogMode();
+        applyTimezoneVisibility();
+        updateClockCloseButtons();
+        syncContainerSizes();
+        
+        
+        
+        // Initialize music
+        changeMusicSound();
+        setMusicVolume();
+        updatePreviewMusicBtn();
+        document.getElementById('musicStatus').textContent = 'Aus';
+
+        // Start clock
+        initMusicHint();
+        applyLanguage();
+        // Apply stored title visibility to all clocks
+        applyTitleVisibility();
+        // restore tab display preference
+        try {
+            const storedTab = localStorage.getItem('tabBlinkEnabled');
+            if (storedTab !== null) tabBlinkEnabled = storedTab === 'true';
+            const tabBtn = document.getElementById('tabBlinkBtn');
+            if (tabBtn) tabBtn.innerHTML = `${tl('tabBlink')}: <span id="tabBlinkStatus">${tabBlinkEnabled ? tl('on') : tl('off')}</span>`;
+        } catch (e) {}
+        updateAllClocks();
+        setInterval(updateAllClocks, 1000);
+
+        window.addEventListener('resize', () => {
+            applyClockTextStyles();
+            syncTimezoneControlWidths();
+            syncTimezoneControlHeights();
+            updateClockGridLayout();
+            updateScrollState();
+        });
+
+        // Update favicon clock also on dark mode toggle
+        const origToggleDark = toggleDarkMode;
+        toggleDarkMode = function() {
+            origToggleDark();
+            // Trigger favicon update on next frame
+            setTimeout(() => {
+                // The favicon interval will handle it
+            }, 100);
+        };
+    </script>
+</body>
+</html>
+

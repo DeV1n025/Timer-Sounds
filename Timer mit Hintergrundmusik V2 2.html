@@ -1,0 +1,3413 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timer</title>
+    <link href="https://fonts.cdnfonts.com/css/digital-7-mono" rel="stylesheet">
+    <link id="favicon" rel="icon" type="image/png" href="">
+    <style>
+        * {
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            padding-top: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: Arial, sans-serif;
+            overflow-x: hidden;
+            overflow-y: auto;
+            gap: 15px;
+            box-sizing: border-box;
+        }
+        .toolbar-title,
+        .toolbar-title *,
+        .help-dialog-body,
+        .help-dialog-body *,
+        .help-dialog,
+        .help-dialog *,
+        .music-hint,
+        .music-hint *,
+        .error-message,
+        .error-message * {
+            -webkit-user-select: text;
+            user-select: text;
+            -webkit-touch-callout: default;
+        }
+        .container {
+            text-align: center;
+            position: relative;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            position: relative;
+            width: min(450px, calc(100vw - 40px));
+            box-sizing: border-box;
+        }
+        #inputContainer {
+            margin-top: 0;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--element-gap);
+        }
+        :root {
+            --ui-scale: 1; /* set via settings with setUiScale(scale) */
+            --element-gap: calc(6px * var(--ui-scale));
+            --button-bg: #667eea;
+            --button-hover: #764ba2;
+            --button-bg-dark: #4a5a9e;
+            --button-hover-dark: #5a3a7a;
+            --control-height: calc(36px * var(--ui-scale));
+            --button-min-height: calc(42px * var(--ui-scale));
+        }
+        #timerContainer > * {
+            margin: var(--element-gap) 0 !important;
+        }
+        #inputTitle {
+            font-size: calc(20px * var(--ui-scale));
+            font-weight: 700;
+            margin: 0 0 var(--element-gap) 0;
+            cursor: text;
+            color: #556799;
+            width: 100%;
+            text-align: center;
+            padding: 8px 6px;
+        }
+        #inputTitleEdit {
+                height: calc(var(--control-height) + 2px * var(--ui-scale));
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0 10px;
+            margin-bottom: calc(8px * var(--ui-scale));
+            font-size: calc(15px * var(--ui-scale));
+            line-height: var(--control-height);
+        }
+        .title-edit-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .title-edit-row input {
+            flex: 1 1 auto;
+            height: var(--control-height);
+            padding: 0 10px;
+            box-sizing: border-box;
+            line-height: var(--control-height);
+            display: inline-flex;
+            align-items: center;
+            font-size: calc(14px * var(--ui-scale));
+        }
+        #inputTitleSaveBtn {
+            height: var(--control-height);
+            min-width: 40px;
+            padding: 0 8px;
+            border-radius: 5px;
+            background: #667eea;
+            color: white;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        /* Ensure exact height alignment with inputs */
+        #inputTitleSaveBtn {
+            box-sizing: border-box;
+            padding: 0 calc(10px * var(--ui-scale));
+            line-height: 1;
+            font-size: calc(14px * var(--ui-scale));
+            height: calc(var(--control-height) + 2px * var(--ui-scale));
+            min-height: calc(var(--control-height) + 2px * var(--ui-scale));
+            vertical-align: middle;
+            align-self: center;
+            transform: translateY(calc(-1px * var(--ui-scale)));
+            margin-top: calc(-1px * var(--ui-scale));
+        }
+        /* Hover and focus to match other buttons */
+        #inputTitleSaveBtn:hover {
+            background: #764ba2;
+        }
+        body.dark-mode #inputTitleSaveBtn:hover {
+            background: var(--button-hover-dark);
+        }
+        body.dark-mode #inputTitleSaveBtn {
+            background: var(--button-bg-dark);
+        }
+        #inputTitleSaveBtn:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(118,75,162,0.22);
+        }
+        #timerContainer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: min(92vw, 760px);
+            min-width: 280px;
+            z-index: 1;
+        }
+        .toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background: #d0d0d0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 2147483647;
+        }
+        .toolbar-title {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            font-family: Arial, sans-serif;
+            white-space: nowrap;
+            line-height: 1.1;
+            cursor: pointer;
+        }
+        body.dark-mode .toolbar-title {
+            color: #e0e0e0;
+        }
+        body.dark-mode .toolbar {
+            background: #1e1e2f;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
+        }
+
+        .darkmode-btn {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 0;
+            margin: 0;
+            width: 40px;
+            height: 36px;
+            font-size: 18px;
+            line-height: 1;
+            background: #d0d0d0;
+            color: #333;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            cursor: pointer;
+            opacity: 1;
+            transition: background 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .darkmode-btn:hover {
+            background: #b8b8b8;
+        }
+        body.dark-mode .darkmode-btn {
+            background: #1e1e2f;
+            color: #e0e0e0;
+            border: 2px solid #4a5a9e;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+        body.dark-mode .darkmode-btn:hover {
+            background: #2a2a3f;
+        }
+        .settings-toggle-btn {
+            position: absolute;
+            right: 70px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 0;
+            margin: 0;
+            width: 40px;
+            height: 36px;
+            font-size: 18px;
+            line-height: 1;
+            background: #d0d0d0;
+            color: #333;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            cursor: pointer;
+            opacity: 1;
+            transition: background 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .settings-toggle-btn:hover {
+            background: #b8b8b8;
+        }
+        .help-btn {
+            position: absolute;
+            right: 125px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 0;
+            margin: 0;
+            width: 40px;
+            height: 36px;
+            font-size: 18px;
+            line-height: 1;
+            background: #d0d0d0;
+            color: #333;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            cursor: pointer;
+            opacity: 1;
+            transition: background 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-style: italic;
+            font-weight: bold;
+        }
+        .help-btn:hover {
+            background: #b8b8b8;
+        }
+        #helpBtn {
+            right: 180px;
+        }
+        #languageToggleBtn {
+            right: 125px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+        body.dark-mode .help-btn {
+            background: #1e1e2f;
+            color: #e0e0e0;
+            border: 2px solid #4a5a9e;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+        body.dark-mode .help-btn:hover {
+            background: #2a2a3f;
+        }
+        .help-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 2147483647;
+            box-sizing: border-box;
+        }
+        .help-overlay.visible {
+            display: flex;
+        }
+        .help-dialog {
+            width: min(680px, 100%);
+            max-height: min(82vh, 760px);
+            overflow: auto;
+            background: #ffffff;
+            color: #222;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(102, 126, 234, 0.35);
+            padding: 20px 20px 18px;
+            box-sizing: border-box;
+        }
+        body.dark-mode .help-dialog {
+            background: #1e1e2f;
+            color: #e8e8f0;
+            border-color: rgba(128, 146, 234, 0.45);
+        }
+        .help-dialog-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+        .help-dialog-title {
+            margin: 0;
+            font-size: clamp(20px, 4vw, 28px);
+            line-height: 1.15;
+        }
+        .help-dialog-close {
+            width: 36px;
+            height: 36px;
+            flex: 0 0 36px;
+            border-radius: 50%;
+            border: 1px solid rgba(102, 126, 234, 0.45);
+            background: #eef1ff;
+            color: #334;
+            font-size: 22px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin: 0;
+        }
+        .help-dialog-close:hover {
+            background: #dfe5ff;
+        }
+        body.dark-mode .help-dialog-close {
+            background: #2a2a3f;
+            color: #e8e8f0;
+            border-color: rgba(128, 146, 234, 0.55);
+        }
+        body.dark-mode .help-dialog-close:hover {
+            background: #353553;
+        }
+        .help-dialog-body {
+            display: grid;
+            gap: 14px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+        .help-dialog-body h3 {
+            margin: 0 0 6px 0;
+            font-size: 17px;
+        }
+        .help-dialog-body p,
+        .help-dialog-body ul {
+            margin: 0;
+        }
+        .help-dialog-body ul {
+            padding-left: 20px;
+        }
+        .help-dialog-body li + li {
+            margin-top: 4px;
+        }
+        body.dark-mode .settings-toggle-btn {
+            background: #1e1e2f;
+            color: #e0e0e0;
+            border: 2px solid #4a5a9e;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+        body.dark-mode .settings-toggle-btn:hover {
+            background: #2a2a3f;
+        }
+        .toolbar .settings-toggle-btn,
+        .toolbar .help-btn,
+        .toolbar .darkmode-btn {
+            width: 34px !important;
+            height: 32px !important;
+            min-height: 32px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .toolbar-nav {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            gap: 6px;
+            max-width: calc(100vw - 220px);
+            z-index: 6;
+        }
+        .toolbar-nav-btn {
+            margin: 0;
+            padding: 6px 10px;
+            min-height: 32px;
+            font-size: 13px;
+            line-height: 1;
+            border: 1px solid #8f8f8f;
+            border-radius: 6px;
+            background: #ececec;
+            color: #333;
+            white-space: nowrap;
+        }
+        .toolbar-nav-btn:hover {
+            background: #d8d8d8;
+        }
+        .toolbar-nav-btn.active {
+            background: #667eea;
+            color: #fff;
+            border-color: #4f64c8;
+            font-weight: bold;
+        }
+        body.dark-mode .toolbar-nav-btn {
+            background: #2a2a3f;
+            color: #dcdcf0;
+            border-color: #4a5a9e;
+        }
+        body.dark-mode .toolbar-nav-btn:hover {
+            background: #353553;
+        }
+        body.dark-mode .toolbar-nav-btn.active {
+            background: #667eea;
+            color: #fff;
+            border-color: #8092ea;
+        }
+        .display {
+            display: inline-block;
+            font-size: clamp(54px, 12vw, 150px);
+            font-weight: bolder;
+            color: #333;
+            margin: var(--element-gap) 0;
+            letter-spacing: -2px;
+            font-family: 'Digital-7 Mono', sans-serif;
+            line-height: 1;
+        }
+        .analog-display {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            margin: 8px 0 14px;
+            color: #333;
+        }
+        #timerContainer.analog-mode .display {
+            display: none;
+        }
+        #timerContainer.analog-mode .analog-display {
+            display: flex;
+        }
+        .analog-clock-face {
+            position: relative;
+            width: 230px;
+            height: 230px;
+            border-radius: 50%;
+            border: 3px solid currentColor;
+            background: transparent;
+            box-shadow: none;
+        }
+        .analog-ticks {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .analog-ticks-minor {
+            background: repeating-conic-gradient(from -90deg, currentColor 0deg 0.55deg, transparent 0.55deg 6deg);
+            -webkit-mask: radial-gradient(circle, transparent 66%, #000 66%, #000 74%, transparent 74%);
+            mask: radial-gradient(circle, transparent 66%, #000 66%, #000 74%, transparent 74%);
+            opacity: 0.55;
+            z-index: 1;
+        }
+        .analog-ticks-major {
+            background: repeating-conic-gradient(from -90deg, currentColor 0deg 1.3deg, transparent 1.3deg 30deg);
+            -webkit-mask: radial-gradient(circle, transparent 63%, #000 63%, #000 74%, transparent 74%);
+            mask: radial-gradient(circle, transparent 63%, #000 63%, #000 74%, transparent 74%);
+            z-index: 1;
+        }
+        .analog-numbers {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 2;
+        }
+        .analog-number {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            font-family: Arial, sans-serif;
+            font-size: var(--analog-number-size, 13px);
+            font-weight: 600;
+            line-height: 1;
+            color: currentColor;
+        }
+        .analog-hand {
+            position: absolute;
+            left: 50%;
+            bottom: 50%;
+            transform-origin: 50% 100%;
+            transform: translateX(-50%) rotate(0deg);
+            border-radius: 999px;
+            z-index: 3;
+        }
+        .analog-hour {
+            width: var(--analog-hour-width, 10px);
+            height: 23%;
+            background: currentColor;
+            border: var(--analog-hand-border, 2px) solid #000;
+            box-sizing: border-box;
+        }
+        .analog-minute {
+            width: var(--analog-minute-width, 7px);
+            height: 34%;
+            background: currentColor;
+            border: var(--analog-hand-border, 2px) solid #000;
+            box-sizing: border-box;
+        }
+        .analog-second {
+            width: var(--analog-second-width, 2px);
+            height: 45%;
+            background: #d00000;
+        }
+        .analog-center {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            transform: translate(-50%, -50%);
+            z-index: 4;
+        }
+        .btn-row {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        /* control height now comes from :root --control-height (scaled) */
+        input {
+            width: calc(85px * var(--ui-scale));
+            padding: 0 calc(10px * var(--ui-scale));
+            font-size: calc(14px * var(--ui-scale));
+            margin: 0;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            text-align: center;
+            box-sizing: border-box;
+            height: var(--control-height);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .inputs-row button {
+            box-sizing: border-box;
+            height: var(--control-height);
+            padding: 0 calc(12px * var(--ui-scale));
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: calc(14px * var(--ui-scale));
+            line-height: normal;
+            min-height: var(--control-height);
+            margin: 0;
+        }
+        .inputs-row {
+            display: flex;
+            flex-direction: row;
+            gap: var(--element-gap);
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            flex-wrap: wrap; /* allow wrapping when container is too small */
+        }
+        .inputs-row > * {
+            flex: 0 1 calc(96px * var(--ui-scale)); /* slightly shorter preferred width */
+            min-width: calc(56px * var(--ui-scale));
+            max-width: calc(140px * var(--ui-scale));
+        }
+        /* confirm button sizes to its text instead of fixed width */
+        .inputs-row > button {
+            flex: 0 0 auto; /* do not grow; width is intrinsic */
+            width: auto;
+            min-width: calc(72px * var(--ui-scale));
+        }
+        button {
+            padding: calc(10px * var(--ui-scale)) calc(8px * var(--ui-scale));
+            margin: 0;
+            font-size: calc(14px * var(--ui-scale));
+            background: var(--button-bg);
+            color: white;
+            border: none;
+            border-radius: calc(5px * var(--ui-scale));
+            cursor: pointer;
+            transition: background 0.3s;
+            text-align: center;
+            min-height: var(--button-min-height);
+        }
+        button:hover {
+            background: var(--button-hover);
+        }
+        @keyframes blinkRed {
+            0%, 100% { background-color: white; }
+            50% { background-color: #ff9999; }
+        }
+        @keyframes blinkRedDark {
+            0%, 100% { background-color: #2a1e1e; }
+            50% { background-color: #833d3d; }
+        }
+        .blink-red {
+            animation: blinkRed 2s infinite;
+        }
+        body.dark-mode .blink-red {
+            animation: blinkRedDark 2s infinite;
+        }
+        .sound-panel {
+            background: #f0f0f0;
+            padding: 10px;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 190px;
+            position: fixed;
+            top: 75px;
+            right: 20px;
+            bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+            z-index: 10;
+            overflow-y: auto;
+            max-height: none;
+        }
+        /* Do not scale settings panel contents with global UI scale */
+        .sound-panel {
+            --ui-scale: 1 !important;
+        }
+        /* Lock spacing-related variables and common paddings/margins inside settings */
+        .sound-panel {
+            --element-gap: 6px !important;
+            --control-height: 36px !important;
+            --button-min-height: 42px !important;
+            padding: 10px !important;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+            gap: 6px !important;
+        }
+        .sound-panel .panel-header { padding: 5px !important; }
+        .sound-panel .panel-header h2 { font-size: 18px !important; }
+        .sound-panel .collapsible { margin-bottom: 5px !important; }
+        .sound-panel .collapsible-header { padding: 8px !important; margin-bottom: 5px !important; }
+        .sound-panel .collapsible-content { padding-left: 5px !important; }
+        .sound-panel .btn-row { gap: 8px !important; }
+        .sound-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sound-panel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sound-panel::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        body.dark-mode .sound-panel::-webkit-scrollbar-thumb {
+            background: #555;
+        }
+        body.dark-mode button:hover {
+            background: var(--button-hover-dark);
+        }
+        .sound-panel h2 {
+            margin-top: 0;
+            font-size: 18px;
+        }
+        .sound-panel button {
+            width: 100%;
+            margin: 3px 0;
+            box-sizing: border-box;
+        }
+        /* Force fixed sizing inside settings to avoid UI-scale effects */
+        .sound-panel button,
+        .sound-panel select,
+        .sound-panel input,
+        .sound-panel .color-swatch {
+            font-size: 14px !important;
+            padding: 6px 8px !important;
+            min-height: 36px !important;
+            border-radius: 5px !important;
+        }
+        .sound-panel select {
+            width: 100%;
+            padding: 6px;
+            margin: 3px 0;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+        }
+        #previewAlarmBtn:disabled,
+        #previewMusicBtn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+        #finishedButtons button {
+            padding: 15px 20px;
+            font-size: 18px;
+        }
+        button.active-start {
+            background: #28a745;
+        }
+        button.active-pause {
+            background: #ffc107;
+            color: #333;
+        }
+        .version-badge {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            font-size: 10px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            opacity: 0.5;
+            z-index: 10;
+            color: #e0e0e0;
+            margin-left: 20px;
+        }
+        body.dark-mode .version-badge {
+            color: #e0e0e0;
+        }
+        .clock {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            z-index: 10;
+        }
+        .panel-header {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px;
+            user-select: none;
+        }
+        .panel-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+        .panel-content {
+            /* Let panel content size to its content; scrolling is handled by .sound-panel */
+            overflow: visible;
+            transition: none;
+            max-height: none;
+            opacity: 1;
+        }
+        .panel-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+        .collapsible {
+            margin-bottom: 5px;
+        }
+        .collapsible-header {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            user-select: none;
+        }
+        .collapsible-header h3 {
+            margin: 0;
+            font-size: 14px;
+            color: #333;
+        }
+        .collapsible-content {
+            /* Allow content-driven height; collapse will hide via the .collapsed class */
+            overflow: visible;
+            transition: opacity 0.2s ease-out;
+            max-height: none;
+            opacity: 1;
+            padding-left: 5px;
+        }
+        .collapsible-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+        .nested .collapsible-header {
+            padding: 6px 8px;
+            background: #eef0f3;
+        }
+        .nested .collapsible-header h3 {
+            font-size: 13px;
+        }
+        .arrow {
+            transition: transform 0.3s;
+            font-size: 12px;
+        }
+        .arrow.collapsed {
+            transform: rotate(-90deg);
+        }
+        body.dark-mode {
+            background: linear-gradient(135deg, #0c1120 0%, #170f20 100%);
+            color: #e0e0e0;
+        }
+        body.dark-mode .container {
+            background: #1e1e2f;
+            color: #e0e0e0;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+        }
+        body.dark-mode .display {
+            color: #e0e0e0;
+        }
+        body.dark-mode h1, body.dark-mode h2, body.dark-mode h3 {
+            color: #e0e0e0;
+        }
+        body.dark-mode input {
+            background: #2a2a3f;
+            color: #e0e0e0;
+            border-color: #4a5a9e;
+        }
+        body.dark-mode button {
+            background: #4a5a9e;
+        }
+        body.dark-mode button:hover {
+            background: #5a3a7a;
+        }
+        body.dark-mode .sound-panel {
+            background: #1e1e2f;
+            color: #e0e0e0;
+        }
+        body.dark-mode .sound-panel select {
+            border-color: #4a5a9e;
+            background: #2a2a3f;
+            color: #e0e0e0;
+        }
+        body.dark-mode .clock {
+            background: #1e1e2f;
+            color: #e0e0e0;
+        }
+        body.dark-mode .collapsible-header {
+            background: #2a2a3f;
+        }
+        body.dark-mode .collapsible-header h3 {
+            color: #e0e0e0;
+        }
+        body.dark-mode button.active-start {
+            background: #28a745;
+        }
+        body.dark-mode button.active-pause {
+            background: #ffc107;
+            color: #333;
+        }
+        body.dark-mode .setting-label {
+            color: #e0e0e0 !important;
+        }
+        
+        .error-message {
+            position: fixed;
+            top: 70px;
+            left: 20px;
+            background: white;
+            color: #d32f2f;
+            border: 2px solid #d32f2f;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 20;
+            opacity: 1;
+            transition: opacity 2s ease-out;
+            min-width: 200px;
+            max-width: 300px;
+            box-sizing: border-box;
+        }
+        body.dark-mode .error-message {
+            background: #2a1e1e;
+            color: #ff5252;
+            border-color: #ff5252;
+            box-shadow: 0 4px 12px rgba(255, 82, 82, 0.4);
+        }
+        .error-message button {
+            margin: 0 0 0 10px;
+            padding: 4px 12px;
+            font-size: 12px;
+            margin-top: 10px;
+            background: transparent;
+            color: #4caf50;
+            border: 2px solid #4caf50;
+            border-radius: 4px;
+            cursor: pointer;
+            float: right;
+        }
+        .error-message button:hover {
+            background: rgba(76, 175, 80, 0.1);
+            color: #45a049;
+            border-color: #45a049;
+        }
+        .error-message button:hover {
+            background: #45a049;
+        }
+        body.dark-mode .error-message button {
+            color: #81c784;
+            border-color: #81c784;
+            background: rgba(129, 199, 132, 0.1);
+        }
+        body.dark-mode .error-message button:hover {
+            color: #66bb6a;
+            border-color: #66bb6a;
+            background: rgba(102, 187, 106, 0.2);
+        }
+        #errorText {
+            display: inline-block;
+        }
+
+        .music-hint {
+            position: fixed;
+            left: 50%;
+            bottom: 12px;
+            --hint-base-transform: translateX(-50%);
+            transform: var(--hint-base-transform) scale(1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            max-width: min(92vw, 420px);
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(48, 62, 122, 0.35);
+            background: rgba(255, 255, 255, 0.78);
+            color: #2f3f86;
+            font-size: 12px;
+            font-family: Arial, sans-serif;
+            font-weight: 600;
+            line-height: 1.25;
+            text-align: center;
+            box-shadow: 0 5px 14px rgba(0, 0, 0, 0.18);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 22;
+            transition: width 0.25s ease, height 0.25s ease, padding 0.25s ease, opacity 0.25s ease, border-color 0.25s ease, background 0.25s ease, transform 0.25s ease;
+            cursor: default;
+        }
+        .music-hint-icon {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            line-height: 1;
+            opacity: 1;
+        }
+        .music-hint.expanding {
+            animation: hintExpand 0.28s ease;
+        }
+        .music-hint.collapsing {
+            animation: hintCollapse 0.28s ease;
+        }
+        .music-hint.collapsed {
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            background: rgba(255, 255, 255, 0.42);
+            border-color: rgba(48, 62, 122, 0.28);
+            opacity: 0.74;
+            cursor: pointer;
+        }
+        .music-hint.collapsed .music-hint-text {
+            display: none;
+        }
+        .music-hint.collapsed .music-hint-icon {
+            display: inline-flex;
+            opacity: 0.58;
+        }
+        body.dark-mode .music-hint {
+            background: rgba(30, 30, 47, 0.82);
+            color: #dbe3ff;
+            border-color: rgba(144, 163, 240, 0.45);
+        }
+        body.dark-mode .music-hint.collapsed {
+            background: rgba(30, 30, 47, 0.5);
+            border-color: rgba(144, 163, 240, 0.35);
+            opacity: 0.68;
+        }
+
+        @keyframes hintExpand {
+            from {
+                transform: var(--hint-base-transform) scale(0.9);
+                opacity: 0.58;
+            }
+            to {
+                transform: var(--hint-base-transform) scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes hintCollapse {
+            from {
+                transform: var(--hint-base-transform) scale(1);
+                opacity: 1;
+            }
+            to {
+                transform: var(--hint-base-transform) scale(0.9);
+                opacity: 0.68;
+            }
+        }
+
+        @media (max-width: 900px) {
+            #timerContainer {
+                position: static;
+                top: auto;
+                left: auto;
+                transform: none;
+                width: min(640px, calc(100vw - 30px));
+                min-width: 0;
+            }
+            #inputContainer {
+                margin-top: 0;
+            }
+            .sound-panel {
+                right: 12px;
+                top: 70px;
+                width: min(300px, calc(100vw - 24px));
+                max-height: calc(100vh - 84px);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .toolbar {
+                height: 56px;
+            }
+            .toolbar-title {
+                left: 44px;
+                font-size: 14px;
+                line-height: 1.15;
+                max-width: calc(100vw - 130px);
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .toolbar-nav {
+                max-width: calc(100vw - 180px);
+                gap: 4px;
+            }
+            .toolbar-nav-btn {
+                font-size: 11px;
+                padding: 5px 8px;
+                min-height: 30px;
+            }
+            .help-btn {
+                right: 100px;
+                width: 34px;
+                height: 32px;
+            }
+            #helpBtn {
+                right: 148px;
+            }
+            #languageToggleBtn {
+                right: 102px;
+                font-size: 10px;
+            }
+            .settings-toggle-btn {
+                right: 56px;
+                width: 34px;
+                height: 32px;
+            }
+            .darkmode-btn {
+                right: 10px;
+                width: 34px;
+                height: 32px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+                padding-top: 74px;
+                gap: 10px;
+            }
+            .toolbar {
+                height: 56px;
+            }
+            .toolbar-title {
+                left: 44px;
+                font-size: 14px;
+                line-height: 1.15;
+                max-width: calc(100vw - 130px);
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .toolbar-nav {
+                max-width: calc(100vw - 180px);
+                gap: 4px;
+            }
+            .toolbar-nav-btn {
+                font-size: 11px;
+                padding: 5px 8px;
+                min-height: 30px;
+            }
+            .help-btn {
+                right: 100px;
+                width: 34px;
+                height: 32px;
+            }
+            #helpBtn {
+                right: 148px;
+            }
+            #languageToggleBtn {
+                right: 102px;
+                font-size: 10px;
+            }
+            .settings-toggle-btn {
+                right: 56px;
+                width: 34px;
+                height: 32px;
+            }
+            .darkmode-btn {
+                right: 10px;
+                width: 34px;
+                height: 32px;
+            }
+            .container {
+                width: calc(100vw - 20px);
+                padding: 14px;
+                border-radius: 9px;
+            }
+            #inputContainer {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
+                align-items: stretch;
+            }
+            #inputContainer input,
+            #inputContainer button {
+                width: 100%;
+                margin: 0;
+                min-height: 44px;
+            }
+            #inputContainer button {
+                grid-column: 1 / -1;
+            }
+            .display {
+                letter-spacing: -1px;
+            }
+            #runningText {
+                font-size: 16px !important;
+            }
+            .btn-row {
+                gap: 6px;
+            }
+            .btn-row button {
+                flex: 1 1 100%;
+                width: 100%;
+                margin: 0;
+                min-height: 44px;
+            }
+            #finishedButtons button {
+                font-size: 16px;
+                padding: 12px;
+            }
+            .sound-panel {
+                left: 10px;
+                right: 10px;
+                top: 64px;
+                width: auto;
+                max-height: calc(100vh - 72px);
+                padding: 8px;
+            }
+            .version-badge {
+                left: 10px;
+                bottom: 8px;
+                margin-left: 0;
+                font-size: 9px;
+                padding: 3px 6px;
+            }
+            .clock {
+                right: 10px;
+                bottom: 8px;
+                padding: 6px 10px;
+                font-size: 14px;
+            }
+            .error-message {
+                left: 10px;
+                right: 10px;
+                top: 62px;
+                min-width: 0;
+                max-width: none;
+                width: auto;
+                font-size: 13px;
+            }
+            .music-hint {
+                bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+            }
+        }
+
+        @media (max-width: 380px) {
+            .display {
+                font-size: clamp(40px, 15vw, 62px);
+            }
+            .toolbar-title {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <div class="toolbar">
+        <div id="toolbarTitle" class="toolbar-title" onclick="location.reload()" title="Seite neu laden" role="button" tabindex="0" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); location.reload(); }">Timer mit<br>Hintergrundmusik</div>
+        <div class="toolbar-nav">
+            <button id="navTimerBtn" class="toolbar-nav-btn active" type="button" onclick="location.href='Timer mit Hintergrundmusik V2 2.html'">Timer</button>
+            <button id="navStopwatchBtn" class="toolbar-nav-btn" type="button" onclick="location.href='Stoppuhr mit Hintergrundmusik V2 2.html'">Stoppuhr</button>
+            <button id="navClockBtn" class="toolbar-nav-btn" type="button" onclick="location.href='Uhr mit Hintergrundmusik V2 2.html'">Uhr</button>
+        </div>
+        <button id="helpBtn" class="help-btn" type="button" onclick="showProgramHelp()" title="Anleitung anzeigen">i</button>
+        <button id="languageToggleBtn" class="settings-toggle-btn" type="button" onclick="toggleLanguage()" title="Sprache wechseln">DE</button>
+        <button id="settingsToggleBtn" class="settings-toggle-btn" onclick="toggleSettingsPanel()" title="Einstellungen ein-/ausblenden"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
+        <button id="darkModeToggleBtn" class="darkmode-btn" onclick="toggleDarkMode()" title="Darkmode umschalten"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></button>
+
+    </div>
+    <div class="container" id="timerContainer">
+        <div id="inputContainer" style="width:100%; box-sizing:border-box;">
+            <div id="inputTitle" tabindex="0" onclick="enableTitleEdit()" onkeydown="if(event.key==='Enter'){ enableTitleEdit(); }">Timer</div>
+            <div class="title-edit-row" style="display:none; width:100%; box-sizing:border-box;">
+                <input type="text" id="inputTitleEdit" placeholder="Titel eingeben" onblur="saveTitleEdit()" onkeydown="handleTitleKey(event)">
+                <button id="inputTitleSaveBtn" onclick="saveTitleEdit()" aria-label="Speichern">✔</button>
+            </div>
+            <div class="inputs-row">
+                <input type="number" id="hours" placeholder="Stunden" min="0" max="99">
+                <input type="number" id="minutes" placeholder="Minuten" min="0" max="59">
+                <input type="number" id="seconds" placeholder="Sekunden" min="0" max="59">
+                <button id="confirmBtn" onclick="confirmTime()" >Bestätigen</button>
+            </div>
+        </div>
+        <div class="display" id="display">00:00:00</div>
+        <div class="analog-display" id="analogDisplay" aria-hidden="true">
+            <div class="analog-clock-face">
+                <div class="analog-hand analog-hour" id="analogHourHand"></div>
+                <div class="analog-hand analog-minute" id="analogMinuteHand"></div>
+                <div class="analog-hand analog-second" id="analogSecondHand"></div>
+                <div class="analog-center"></div>
+            </div>
+        </div>
+        <div id="runningText" style="display: none; font-size: 18px; margin: 0;">Zeit läuft</div>
+        <div class="btn-row">
+            <button id="startPauseBtn" onclick="toggleTimer()">Start</button>
+            <button id="resetBtn" onclick="resetTimer()">Zurücksetzen</button>
+            <button id="toggleInputsBtn" onclick="toggleInputs()">Eingaben ausblenden</button>
+        </div>
+        <div id="finishedButtons" style="display: none;">
+            <div class="btn-row">
+                <button id="stopAlarmBtn" onclick="stopAlarm()">Stop</button>
+                <button id="repeatTimerBtn" onclick="repeatTimer()">Wiederholen</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="sound-panel" style="display: none;">
+        <div class="panel-header" onclick="togglePanel()">
+            <h2 id="settingsTitle">Einstellungen</h2>
+            <span class="arrow" id="panelArrow">▼</span>
+        </div>
+        <div class="panel-content" id="panelContent">
+            <div class="collapsible">
+                <div class="collapsible-header" onclick="toggleSection('general')">
+                    <h3 id="generalSettingsTitle">Allgemeine Einstellungen</h3>
+                    <span class="arrow" id="arrow-general">▼</span>
+                </div>
+                <div class="collapsible-content" id="content-general">
+                    <div class="setting-label" id="sizeSettingLabel" style="font-family: Arial, sans-serif; font-size: 14px; margin-bottom: 2px;">Textgrösse</div>
+                    <div style="display: flex; align-items: center; margin: 1px 0;">
+                        <span onclick="resetTimerFontSize()" title="Standardgrösse" style="cursor: pointer; user-select: none;">🔤</span>
+                        <input type="range" id="timerFontSize" min="50" max="300" value="150" onchange="setTimerFontSize()" style="flex: 1; margin-left: 5px;">
+                    </div>
+                    <button onclick="toggleDarkMode()" id="darkModeBtn" style="margin-bottom: 8px;">Darkmode: <span id="darkModeStatus">Ein</span></button>
+                    <button onclick="toggleAnalogMode()" id="analogModeBtn" style="margin-bottom: 8px;">Analoganzeige: <span id="analogModeStatus">Aus</span></button>
+                    <button onclick="toggleErrorDisplay()" id="errorDisplayBtn" style="margin-bottom: 8px;">Meldungen beim Klingeln: <span id="errorDisplayStatus">Ein</span></button>
+                    <button onclick="toggleTabBlink()" id="tabBlinkBtn" style="margin-bottom: 8px;">Anzeige im Tab: <span id="tabBlinkStatus">Ein</span></button>
+                    <button onclick="toggleContainerBlink()" id="blinkBtn" style="margin-bottom: 8px;">Blinken beim Klingeln: <span id="blinkStatus">Ein</span></button>
+                    <button onclick="toggleTitleVisibility()" id="titleToggleBtn" style="margin-bottom: 8px;">Titel anzeigen: <span id="titleToggleStatus">Ein</span></button>
+                </div>
+            </div>
+            
+
+            <div class="collapsible">
+                <div class="collapsible-header" onclick="toggleSection('sound')">
+                    <h3 id="soundSettingsTitle">Sound-Einstellungen</h3>
+                    <span class="arrow" id="arrow-sound">▼</span>
+                </div>
+                <div class="collapsible-content" id="content-sound">
+                    <button onclick="toggleAlarm()" id="alarmBtn">Klingelton: <span id="alarmStatus">Aus</span></button>
+                    <select id="alarmSound" onchange="changeAlarmSound()">
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Klingelton/Harp.mp3">Harp</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Klingelton/Alarm.mp3">Alarm</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Klingelton/Dezenter Klingelton.mp3">Dezenter Klingelton</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Klingelton/Gigaset.mp3">Gigaset</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Klingelton/Guter-Wecker.mp3">Guter-Wecker</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Klingelton/Homecoming.mp3">Homecoming</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Klingelton/Morning Flower.mp3">Morning Flower</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Klingelton/NOKIA Tune.mp3">NOKIA Tune</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Klingelton/Radar.mp3">Radar</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Klingelton/Schulglocke.mp3">Schulglocke</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Klingelton/Schulgong.mp3">Schulgong</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Klingelton/Türklingel.wav">Türklingel</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Klingelton/Vögel.mp3">Vögel</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Klingelton/Wecker.mp3">Wecker</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Klingelton/Festival-Wecker (Guten Morgen Sonnenschein Hardcore Remix Parodie) - deMusiax.mp3">Festival-Wecker (Guten Morgen Sonnenschein Hardcore)</option>
+                        <option id="alarmUploadOption" value="upload">Eigene Datei</option>
+                    </select>
+                    <input type="file" id="alarmFile" accept="audio/*" style="display: none; margin: 3px 0;">
+                    <span id="alarmFileName" style="font-size: 12px; color: #667eea;"></span>
+                    <div style="display: flex; align-items: center; margin: 1px 0;">
+                        <span id="alarmMuteIcon" onclick="muteAlarm()" title="Stumm" style="cursor: pointer; user-select: none;">🔊</span>
+                        <input type="range" id="alarmVolume" min="0" max="1" step="0.1" value="1" onchange="setAlarmVolume()" style="flex: 1; margin-left: 5px;">
+                    </div>
+                    <button id="previewAlarmBtn" style="width: 100%; margin: 3px 0;" onclick="previewAlarm()" disabled>Klingelton vorhören</button>
+                    <hr style="border: none; border-top: 1px solid #ddd; margin: 10px 0;">
+
+                    <button onclick="toggleMusic()" id="musicBtn">Hintergrundmusik: <span id="musicStatus">Aus</span></button>
+                    <select id="musicSound" onchange="changeMusicSound()">
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Elevator Music.mp3">Elevator Music</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Chill Deep House Mix.mp3">Chill Deep House Mix</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Deep Focus Music.mp3">Deep Focus Music</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Elevator Music Jazz.mp3">Elevator Music Jazz</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Epic Music.mp3">Epic Music</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Kahoot Lobby theme song.mp3">Kahoot Lobby theme song</option>
+                        <option value="Kahoot Answer">Kahoot Answer</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Minecraft.mp3">Minecraft</option>
+                        <option value="Minecraft Album">Minecraft Album</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Party Mix Mashup.mp3">Party Mix Mashup</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Super Mario.mp3">Super Mario</option>
+                        <option id="musicUploadOption" value="upload">Eigene Datei</option>
+                    </select>
+                    <input type="file" id="musicFile" accept="audio/*" style="display: none; margin: 3px 0;">
+                    <span id="musicFileName" style="font-size: 12px; color: #667eea;"></span>
+                    <div style="display: flex; align-items: center; margin: 1px 0;">
+                        <span id="musicMuteIcon" onclick="muteMusic()" title="Stumm" style="cursor: pointer; user-select: none;">🔊</span>
+                        <input type="range" id="musicVolume" min="0" max="1" step="0.1" value="0.75" onchange="setMusicVolume()" style="flex: 1; margin-left: 5px;">
+                    </div>
+                    <button id="previewMusicBtn" style="width: 100%; margin: 3px 0;" onclick="previewMusic()" disabled>Musik vorhören</button>
+                </div>
+            </div>
+
+            <div class="collapsible">
+                <div class="collapsible-header" onclick="toggleSection('color')">
+                    <h3 id="colorSettingsTitle">Farb-Einstellungen</h3>
+                    <span class="arrow" id="arrow-color">▼</span>
+                </div>
+                <div class="collapsible-content" id="content-color">
+                    <button onclick="toggleColorMenu()" id="timerColorBtn" style="margin-bottom: 8px;">Timer-Farbe</button>
+                    <div id="colorMenu" style="display: none; background: white; border: 1px solid #667eea; border-radius: 5px; padding: 10px; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span id="colorMenuTitle" style="font-weight: bold; font-size: 14px; color: #333;">Farbe wählen</span>
+                            <span id="colorMenuOk" onclick="toggleColorMenu()" style="cursor: pointer; font-size: 16px; color: #667eea; font-weight: bold;">OK</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 8px;">
+                            <div onclick="pickColor('#333333')" style="width: 100%; height: 25px; background: #333333; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#ff0000')" style="width: 100%; height: 25px; background: #ff0000; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#00ff00')" style="width: 100%; height: 25px; background: #00ff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#0000ff')" style="width: 100%; height: 25px; background: #0000ff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#ffa500')" style="width: 100%; height: 25px; background: #ffa500; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#800080')" style="width: 100%; height: 25px; background: #800080; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#00ffff')" style="width: 100%; height: 25px; background: #00ffff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#ff69b4')" style="width: 100%; height: 25px; background: #ff69b4; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#ffff00')" style="width: 100%; height: 25px; background: #ffff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#a52a2a')" style="width: 100%; height: 25px; background: #a52a2a; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#808080')" style="width: 100%; height: 25px; background: #808080; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#ffffff')" style="width: 100%; height: 25px; background: #ffffff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <input type="color" id="timerColor" value="#333333" onchange="pickColor(this.value)" style="width: 30px; height: 25px; border: none; cursor: pointer; padding: 0;">
+                            <span id="colorOwnLabel" style="font-size: 12px; color: #666;">Eigene Farbe</span>
+                        </div>
+                    </div>
+                    <button onclick="toggleContainerColorMenu()" id="containerColorBtn" style="margin-bottom: 8px;">Container-Farbe</button>
+                    <div id="containerColorMenu" style="display: none; background: white; border: 1px solid #667eea; border-radius: 5px; padding: 10px; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span id="containerColorMenuTitle" style="font-weight: bold; font-size: 14px; color: #333;">Container-Farbe wählen</span>
+                            <span id="containerColorMenuOk" onclick="toggleContainerColorMenu()" style="cursor: pointer; font-size: 16px; color: #667eea; font-weight: bold;">OK</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 8px;">
+                            <div onclick="pickContainerColor('#ffffff')" style="width: 100%; height: 25px; background: #ffffff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#f0f0f0')" style="width: 100%; height: 25px; background: #f0f0f0; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#333333')" style="width: 100%; height: 25px; background: #333333; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#1e1e2f')" style="width: 100%; height: 25px; background: #1e1e2f; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#ff0000')" style="width: 100%; height: 25px; background: #ff0000; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#00ff00')" style="width: 100%; height: 25px; background: #00ff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#0000ff')" style="width: 100%; height: 25px; background: #0000ff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#ffa500')" style="width: 100%; height: 25px; background: #ffa500; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#800080')" style="width: 100%; height: 25px; background: #800080; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#00ffff')" style="width: 100%; height: 25px; background: #00ffff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#ff69b4')" style="width: 100%; height: 25px; background: #ff69b4; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#ffff00')" style="width: 100%; height: 25px; background: #ffff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <input type="color" id="containerColor" value="#ffffff" onchange="pickContainerColor(this.value)" style="width: 30px; height: 25px; border: none; cursor: pointer; padding: 0;">
+                            <span id="containerColorOwnLabel" style="font-size: 12px; color: #666;">Eigene Farbe</span>
+                        </div>
+                    </div>
+                    <button onclick="toggleBgColorMenu()" id="bgColorBtn" style="margin-bottom: 8px;">Hintergrund-Farbe</button>
+                    <div id="bgColorMenu" style="display: none; background: white; border: 1px solid #667eea; border-radius: 5px; padding: 10px; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span id="bgColorMenuTitle" style="font-weight: bold; font-size: 14px; color: #333;">Hintergrund-Farbe wählen</span>
+                            <span id="bgColorMenuOk" onclick="toggleBgColorMenu()" style="cursor: pointer; font-size: 16px; color: #667eea; font-weight: bold;">OK</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 8px;">
+                            <div onclick="pickBgColor('#667eea')" style="width: 100%; height: 25px; background: #667eea; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#ff0000')" style="width: 100%; height: 25px; background: #ff0000; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#00ff00')" style="width: 100%; height: 25px; background: #00ff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#0000ff')" style="width: 100%; height: 25px; background: #0000ff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#ffa500')" style="width: 100%; height: 25px; background: #ffa500; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#800080')" style="width: 100%; height: 25px; background: #800080; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#00ffff')" style="width: 100%; height: 25px; background: #00ffff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#ff69b4')" style="width: 100%; height: 25px; background: #ff69b4; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#ffff00')" style="width: 100%; height: 25px; background: #ffff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#333333')" style="width: 100%; height: 25px; background: #333333; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#000000')" style="width: 100%; height: 25px; background: #000000; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <input type="color" id="bgColor" value="#667eea" onchange="pickBgColor(this.value)" style="width: 30px; height: 25px; border: none; cursor: pointer; padding: 0;">
+                            <span id="bgColorOwnLabel" style="font-size: 12px; color: #666;">Eigene Farbe</span>
+                        </div>
+                    </div>
+                    <button onclick="resetColors()" id="resetColorsBtn" style="margin-bottom: 8px;">Standardfarben wiederherstellen</button>
+                </div>
+                <div class="panel-bottom-spacer" style="height:8px; width:100%;"></div>
+            </div>
+            
+        </div>
+    </div>
+
+    <audio id="alarmAudio" preload="auto"></audio>
+<audio id="musicAudio" preload="auto"></audio>
+<div id="versionBadge" class="version-badge">V2.2</div>
+<div id="clock" class="clock">00:00:00</div>
+
+<div id="errorMessage" class="error-message" style="display: none;">
+    <span id="errorText">Sound-Datei nicht gefunden!</span>
+    <button id="understoodBtn" onclick="handleUnderstood()">Verstanden</button>
+</div>
+
+<div id="musicHint" class="music-hint" aria-live="polite" role="button" tabindex="0" title="Info anzeigen">
+    <span id="musicHintText" class="music-hint-text">Hintergrungmusik in den einstellungen einschelten.</span>
+    <span class="music-hint-icon" aria-hidden="true">i</span>
+</div>
+
+<div id="helpOverlay" class="help-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="helpTitle" onclick="if (event.target === this) hideProgramHelp()">
+    <div class="help-dialog">
+        <div class="help-dialog-header">
+            <h2 id="helpTitle" class="help-dialog-title">Timer mit Hintergrundmusik</h2>
+            <button id="helpCloseBtn" type="button" class="help-dialog-close" onclick="hideProgramHelp()" aria-label="Hilfe schließen">&times;</button>
+        </div>
+        <div id="helpBody" class="help-dialog-body"></div>
+    </div>
+</div>
+
+    <script>
+        // Ensure settings panel has bottom spacer so last control can be scrolled past
+        (function ensurePanelSpacer(){
+            function insertSpacer(){
+                try{
+                    const panel = document.querySelector('.sound-panel .panel-content');
+                    if (!panel) return;
+                    if (!panel.querySelector('.panel-bottom-spacer')){
+                        const spacer = document.createElement('div');
+                        spacer.className = 'panel-bottom-spacer';
+                        spacer.style.height = '8px';
+                        spacer.style.width = '100%';
+                        panel.appendChild(spacer);
+                    }
+                }catch(e){}
+            }
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', insertSpacer); else insertSpacer();
+        })();
+        let totalSeconds = 0;
+        let interval = null;
+        let isRunning = false;
+let alarmEnabled = true;
+let musicEnabled = false;
+        let timerFinished = false;
+        let lastSetSeconds = 0;
+        let alarmPreviewPlaying = false;
+let musicPreviewPlaying = false;
+    let blinkEnabled = true;
+let showErrors = false;
+document.getElementById('errorDisplayStatus').textContent = 'Aus';
+    let tabBlinkEnabled = true;
+    let musicPausedByTimerEnd = false;
+const BASE_TITLE = document.title || 'Timer';
+
+        /* UI scale helper: setUiScale(scale) applies proportional scaling to title, inputs and buttons.
+           Call with a number like 1 (default), 0.9, 1.2 etc. */
+        function setUiScale(scale) {
+            scale = Number(scale) || 1;
+            document.documentElement.style.setProperty('--ui-scale', scale);
+            try { localStorage.setItem('uiScale', String(scale)); } catch (e) {}
+        }
+
+        // On load apply previously saved UI scale
+        (function() {
+            try{
+                if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', insertSpacer); else insertSpacer();
+            } catch(e) {}
+            // Ensure fixed UI elements are appended to body (prevent being positioned relative to transformed container)
+            try {
+                document.addEventListener('DOMContentLoaded', function() {
+                    ['musicAudio','versionBadge','clock','errorMessage','musicHint','helpOverlay','sound-panel'].forEach(function(id) {
+                        try {
+                            var el = document.getElementById(id) || document.querySelector('.' + id);
+                            if (el && el.parentElement && el.parentElement !== document.body) {
+                                document.body.appendChild(el);
+                            }
+                        } catch(e) {}
+                    });
+                });
+            } catch (e) {}
+        })();
+let endBlinkInterval = null;
+let endBlinkShowX = false;
+let isTimerPaused = false;
+        let musicPlaylist = [];
+        let currentTrackIndex = 0;
+let isMusicShuffle = false;
+let isAnalogMode = false;
+        const LANGUAGE_KEY = 'timerLanguage';
+        let currentLanguage = localStorage.getItem(LANGUAGE_KEY) === 'en' ? 'en' : 'de';
+
+// toolbar title visibility (persisted)
+let toolbarTitleVisible = true;
+try {
+    const v = localStorage.getItem('toolbarTitleVisible');
+    if (v !== null) toolbarTitleVisible = v === 'true';
+} catch (e) {}
+// input title ("Timer") visibility (persisted)
+let inputTitleVisible = true;
+try {
+    const v2 = localStorage.getItem('inputTitleVisible');
+    if (v2 !== null) inputTitleVisible = v2 === 'true';
+} catch (e) {}
+
+        const I18N = {
+            de: {
+                toolbarTitle: 'Timer mit<br>Hintergrundmusik',
+                navStopwatch: 'Stoppuhr',
+                navClock: 'Uhr',
+                langTooltip: 'Sprache wechseln',
+                helpTooltip: 'Anleitung anzeigen',
+                settingsTooltip: 'Einstellungen ein-/ausblenden',
+                settingsTitle: 'Einstellungen',
+                generalSettingsTitle: 'Allgemeine Einstellungen',
+                soundSettingsTitle: 'Sound-Einstellungen',
+                colorSettingsTitle: 'Farb-Einstellungen',
+                showTitle: 'Titel anzeigen',
+                colorSettingsTitle: 'Farb-Einstellungen',
+                darkModeTooltip: 'Darkmode umschalten',
+                lightModeTooltip: 'Hellmodus umschalten',
+                hours: 'Stunden',
+                minutes: 'Minuten',
+                seconds: 'Sekunden',
+                confirm: 'Bestätigen',
+                start: 'Start',
+                pause: 'Pause',
+                resume: 'Weiter',
+                reset: 'Zurücksetzen',
+                hideInputs: 'Eingaben ausblenden',
+                showInputs: 'Eingaben einblenden',
+                stop: 'Stop',
+                repeat: 'Wiederholen',
+                running: 'Zeit läuft',
+                paused: 'Pause',
+                finished: 'Timer abgelaufen',
+                timerZero: 'Timer ist auf 0! Bitte Zeit eingeben und Bestätigen.',
+                musicUnavailable: 'Hintergrundmusik nicht verfügbar',
+                soundNotFound: 'Sound-Datei nicht gefunden: ',
+                darkMode: 'Darkmode',
+                analogDisplay: 'Analoganzeige',
+                blinkAtEnd: 'Blinken beim Klingeln',
+                tabBlink: 'Anzeige im Tab',
+                ringMessages: 'Meldungen beim Klingeln',
+                alarmTone: 'Klingelton',
+                backgroundMusic: 'Hintergrundmusik',
+                timerColor: 'Timer-Farbe',
+                containerColor: 'Container-Farbe',
+                backgroundColor: 'Hintergrund-Farbe',
+                chooseColor: 'Farbe wählen',
+                chooseContainerColor: 'Container-Farbe wählen',
+                chooseBackgroundColor: 'Hintergrund-Farbe wählen',
+                customColor: 'Eigene Farbe',
+                resetDefaultColors: 'Standardfarben wiederherstellen',
+                mute: 'Stumm',
+                ownFile: 'Eigene Datei',
+                previewAlarm: 'Klingelton vorhören',
+                alarmRunning: '🔒 Klingelton läuft',
+                stopAlarmPreview: '⏹ Klingelton stoppen',
+                previewMusic: 'Musik vorhören',
+                musicRunning: '🔒 Musik läuft',
+                stopMusicPreview: '⏹ Musik stoppen',
+                understood: 'Verstanden',
+                hintTitle: 'Info anzeigen',
+                hintText: 'Hintergrungmusik in den einstellungen einschelten.',
+                helpCloseAria: 'Hilfe schließen',
+                ok: 'OK',
+                textSize: 'Textgrösse',
+                clockSize: 'Uhrgrösse',
+                on: 'Ein',
+                off: 'Aus',
+                helpTitle: 'Timer mit Hintergrundmusik'
+            },
+            en: {
+                toolbarTitle: 'Timer with<br>Background Music',
+                navStopwatch: 'Stopwatch',
+                navClock: 'Clock',
+                langTooltip: 'Switch language',
+                helpTooltip: 'Show guide',
+                settingsTooltip: 'Show/hide settings',
+                settingsTitle: 'Settings',
+                generalSettingsTitle: 'General settings',
+                soundSettingsTitle: 'Sound settings',
+                colorSettingsTitle: 'Color settings',
+                showTitle: 'Show title',
+                colorSettingsTitle: 'Color settings',
+                darkModeTooltip: 'Toggle dark mode',
+                lightModeTooltip: 'Toggle light mode',
+                hours: 'Hours',
+                minutes: 'Minutes',
+                seconds: 'Seconds',
+                confirm: 'Confirm',
+                start: 'Start',
+                pause: 'Pause',
+                resume: 'Resume',
+                reset: 'Reset',
+                hideInputs: 'Hide inputs',
+                showInputs: 'Show inputs',
+                stop: 'Stop',
+                repeat: 'Repeat',
+                running: 'Time running',
+                paused: 'Paused',
+                finished: 'Timer finished',
+                timerZero: 'Timer is set to 0! Please enter time and confirm.',
+                musicUnavailable: 'Background music unavailable',
+                soundNotFound: 'Sound file not found: ',
+                darkMode: 'Dark mode',
+                analogDisplay: 'Analog display',
+                blinkAtEnd: 'Blink on finish',
+                tabBlink: 'Display in tab',
+                ringMessages: 'Ring messages',
+                alarmTone: 'Alarm tone',
+                backgroundMusic: 'Background music',
+                timerColor: 'Timer color',
+                containerColor: 'Container color',
+                backgroundColor: 'Background color',
+                chooseColor: 'Choose color',
+                chooseContainerColor: 'Choose container color',
+                chooseBackgroundColor: 'Choose background color',
+                customColor: 'Custom color',
+                resetDefaultColors: 'Restore default colors',
+                mute: 'Mute',
+                ownFile: 'Own file',
+                previewAlarm: 'Preview alarm tone',
+                alarmRunning: '🔒 Alarm tone playing',
+                stopAlarmPreview: '⏹ Stop alarm preview',
+                previewMusic: 'Preview music',
+                musicRunning: '🔒 Music playing',
+                stopMusicPreview: '⏹ Stop music preview',
+                understood: 'Understood',
+                hintTitle: 'Show info',
+                hintText: 'Enable background music in settings.',
+                helpCloseAria: 'Close help',
+                ok: 'OK',
+                textSize: 'Text size',
+                clockSize: 'Clock size',
+                on: 'On',
+                off: 'Off',
+                helpTitle: 'Timer with Background Music'
+            }
+        };
+
+        function t(key) {
+            return (I18N[currentLanguage] && I18N[currentLanguage][key]) || key;
+        }
+
+        function statusText(value) {
+            return value ? t('on') : t('off');
+        }
+
+        function renderToggleButtonTexts() {
+            const isDark = document.body.classList.contains('dark-mode');
+            const darkModeBtn = document.getElementById('darkModeBtn');
+            if (darkModeBtn) {
+                darkModeBtn.innerHTML = t('darkMode') + ': <span id="darkModeStatus">' + statusText(isDark) + '</span>';
+            }
+
+            const analogBtn = document.getElementById('analogModeBtn');
+            if (analogBtn) {
+                analogBtn.innerHTML = t('analogDisplay') + ': <span id="analogModeStatus">' + statusText(isAnalogMode) + '</span>';
+            }
+
+            const blinkBtn = document.getElementById('blinkBtn');
+            if (blinkBtn) {
+                blinkBtn.innerHTML = t('blinkAtEnd') + ': <span id="blinkStatus">' + statusText(blinkEnabled) + '</span>';
+            const tabBlinkBtn = document.getElementById('tabBlinkBtn');
+            if (tabBlinkBtn) {
+                tabBlinkBtn.innerHTML = t('tabBlink') + ': <span id="tabBlinkStatus">' + statusText(tabBlinkEnabled) + '</span>';
+            }
+            }
+
+            const titleToggleBtn = document.getElementById('titleToggleBtn');
+            if (titleToggleBtn) {
+                titleToggleBtn.innerHTML = t('showTitle') + ': <span id="titleToggleStatus">' + statusText(inputTitleVisible) + '</span>';
+            }
+
+            const errorBtn = document.getElementById('errorDisplayBtn');
+            if (errorBtn) {
+                errorBtn.innerHTML = t('ringMessages') + ': <span id="errorDisplayStatus">' + statusText(showErrors) + '</span>';
+            }
+
+            const alarmBtn = document.getElementById('alarmBtn');
+            if (alarmBtn) {
+                alarmBtn.innerHTML = t('alarmTone') + ': <span id="alarmStatus">' + statusText(alarmEnabled) + '</span>';
+            }
+
+            const musicBtn = document.getElementById('musicBtn');
+            if (musicBtn) {
+                musicBtn.innerHTML = t('backgroundMusic') + ': <span id="musicStatus">' + statusText(musicEnabled) + '</span>';
+            }
+        }
+
+        function applyLanguage() {
+            document.documentElement.lang = currentLanguage;
+            localStorage.setItem(LANGUAGE_KEY, currentLanguage);
+
+            const languageBtn = document.getElementById('languageToggleBtn');
+            if (languageBtn) {
+                languageBtn.textContent = currentLanguage.toUpperCase();
+                languageBtn.title = t('langTooltip');
+            }
+
+            const toolbarTitle = document.querySelector('.toolbar-title');
+            if (toolbarTitle) {
+                toolbarTitle.innerHTML = t('toolbarTitle');
+                toolbarTitle.style.display = toolbarTitleVisible ? '' : 'none';
+            }
+            const inputTitleEl = document.getElementById('inputTitle');
+            if (inputTitleEl) inputTitleEl.style.display = inputTitleVisible ? '' : 'none';
+            document.getElementById('navStopwatchBtn').textContent = t('navStopwatch');
+            document.getElementById('navClockBtn').textContent = t('navClock');
+
+            document.getElementById('helpBtn').title = t('helpTooltip');
+            document.getElementById('settingsToggleBtn').title = t('settingsTooltip');
+            document.getElementById('settingsTitle').textContent = t('settingsTitle');
+            document.getElementById('generalSettingsTitle').textContent = t('generalSettingsTitle');
+            document.getElementById('soundSettingsTitle').textContent = t('soundSettingsTitle');
+            const colorTitleEl = document.getElementById('colorSettingsTitle');
+            if (colorTitleEl) colorTitleEl.textContent = t('colorSettingsTitle');
+            document.getElementById('timerColorBtn').textContent = t('timerColor');
+            document.getElementById('containerColorBtn').textContent = t('containerColor');
+            document.getElementById('bgColorBtn').textContent = t('backgroundColor');
+            document.getElementById('resetColorsBtn').textContent = t('resetDefaultColors');
+            document.getElementById('colorMenuTitle').textContent = t('chooseColor');
+            document.getElementById('containerColorMenuTitle').textContent = t('chooseContainerColor');
+            document.getElementById('bgColorMenuTitle').textContent = t('chooseBackgroundColor');
+            document.getElementById('colorMenuOk').textContent = t('ok');
+            document.getElementById('containerColorMenuOk').textContent = t('ok');
+            document.getElementById('bgColorMenuOk').textContent = t('ok');
+            document.getElementById('colorOwnLabel').textContent = t('customColor');
+            document.getElementById('containerColorOwnLabel').textContent = t('customColor');
+            document.getElementById('bgColorOwnLabel').textContent = t('customColor');
+            document.getElementById('alarmUploadOption').textContent = t('ownFile');
+            document.getElementById('musicUploadOption').textContent = t('ownFile');
+            document.getElementById('alarmMuteIcon').title = t('mute');
+            document.getElementById('musicMuteIcon').title = t('mute');
+            document.getElementById('understoodBtn').textContent = t('understood');
+            document.getElementById('musicHint').title = t('hintTitle');
+            document.getElementById('musicHintText').textContent = t('hintText');
+            document.getElementById('helpCloseBtn').setAttribute('aria-label', t('helpCloseAria'));
+            const tabBlinkBtn = document.getElementById('tabBlinkBtn');
+            if (tabBlinkBtn) tabBlinkBtn.innerHTML = t('tabBlink') + ': <span id="tabBlinkStatus">' + statusText(tabBlinkEnabled) + '</span>';
+
+            const titleToggleBtn = document.getElementById('titleToggleBtn');
+            if (titleToggleBtn) titleToggleBtn.innerHTML = t('showTitle') + ': <span id="titleToggleStatus">' + statusText(inputTitleVisible) + '</span>';
+
+            document.getElementById('hours').placeholder = t('hours');
+            document.getElementById('minutes').placeholder = t('minutes');
+            document.getElementById('seconds').placeholder = t('seconds');
+            document.getElementById('confirmBtn').textContent = t('confirm');
+            document.getElementById('resetBtn').textContent = t('reset');
+            document.getElementById('stopAlarmBtn').textContent = t('stop');
+            document.getElementById('repeatTimerBtn').textContent = t('repeat');
+
+            updateStartPauseButton();
+            const inputContainer = document.getElementById('inputContainer');
+            const inputsRowForToggle = document.querySelector('#inputContainer .inputs-row');
+            document.getElementById('toggleInputsBtn').textContent =
+                (inputsRowForToggle && window.getComputedStyle(inputsRowForToggle).display === 'none') ? t('showInputs') : t('hideInputs');
+
+            const runningText = document.getElementById('runningText');
+            if (runningText.textContent === 'Zeit läuft' || runningText.textContent === 'Time running') {
+                runningText.textContent = t('running');
+            } else if (runningText.textContent === 'Pause' || runningText.textContent === 'Paused') {
+                runningText.textContent = t('paused');
+            } else if (runningText.textContent === 'Timer abgelaufen' || runningText.textContent === 'Timer finished') {
+                runningText.textContent = t('finished');
+            }
+
+            renderToggleButtonTexts();
+            const isDark = document.body.classList.contains('dark-mode');
+            const toolbarBtn = document.getElementById('darkModeToggleBtn');
+            if (toolbarBtn) {
+                toolbarBtn.title = isDark ? t('darkModeTooltip') : t('lightModeTooltip');
+            }
+            const sizeLabel = document.getElementById('sizeSettingLabel');
+            if (sizeLabel) sizeLabel.textContent = isAnalogMode ? t('clockSize') : t('textSize');
+            updatePreviewButtons();
+        }
+
+        function toggleTitleVisibility() {
+                    inputTitleVisible = !inputTitleVisible;
+                    try { localStorage.setItem('inputTitleVisible', String(inputTitleVisible)); } catch (e) {}
+                    const inputTitle = document.getElementById('inputTitle');
+                    if (inputTitle) inputTitle.style.display = inputTitleVisible ? '' : 'none';
+                    renderToggleButtonTexts();
+        }
+
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'de' ? 'en' : 'de';
+            applyLanguage();
+        }
+
+function showError(msg) {
+    if (!showErrors && (msg === 'Timer abgelaufen' || msg === 'Timer finished')) return;
+    const errorDiv = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+    errorText.textContent = msg;
+    errorDiv.style.display = 'block';
+    errorDiv.style.left = '20px';
+    bringToFront(errorDiv);
+    let timeoutId;
+    const startTimeout = () => {
+        timeoutId = setTimeout(() => {
+            if (errorDiv.style.display !== 'none') {
+                clearError();
+            }
+        }, 6000);
+    };
+    const pauseTimeout = () => clearTimeout(timeoutId);
+    const resumeTimeout = () => startTimeout();
+    errorDiv.onmouseenter = pauseTimeout;
+    errorDiv.onmouseleave = resumeTimeout;
+    startTimeout();
+}
+
+function rgbToHex(color) {
+    const values = color.match(/\d+/g);
+    if (!values || values.length < 3) return '#333333';
+    const [r, g, b] = values.slice(0, 3).map(Number);
+    return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+
+
+function handleUnderstood() {
+    clearError();
+    stopAlarm();
+}
+
+function clearError() {
+    const errorDiv = document.getElementById('errorMessage');
+    errorDiv.style.opacity = '0';
+    errorDiv.style.transition = 'opacity 0.5s ease-out';
+    setTimeout(() => {
+        errorDiv.style.display = 'none';
+        errorDiv.style.opacity = '1';
+    }, 500);
+}
+
+function initMusicHint() {
+    const hint = document.getElementById('musicHint');
+    if (!hint) return;
+
+    const collapseHint = () => {
+        hint.classList.remove('expanding');
+        hint.classList.add('collapsing');
+        window.setTimeout(() => {
+            hint.classList.remove('collapsing');
+            hint.classList.add('collapsed');
+        }, 260);
+    };
+
+    const scheduleCollapse = () => {
+        if (hint._collapseTimer) {
+            clearTimeout(hint._collapseTimer);
+        }
+        hint._collapseTimer = setTimeout(collapseHint, 10000);
+    };
+
+    const expandHint = () => {
+        hint.classList.remove('collapsed', 'collapsing');
+        hint.classList.add('expanding');
+        window.setTimeout(() => {
+            hint.classList.remove('expanding');
+        }, 280);
+        scheduleCollapse();
+    };
+
+    scheduleCollapse();
+
+    hint.addEventListener('click', () => {
+        if (hint.classList.contains('collapsed')) {
+            expandHint();
+        }
+    });
+
+    hint.addEventListener('keydown', (event) => {
+        if (!hint.classList.contains('collapsed')) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            expandHint();
+        }
+    });
+}
+
+        const KAHOT_ANSWER_PLAYLIST = [
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Kahoot-Answer/Answer030 Climbing.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Kahoot-Answer/Answer030 Groovy.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Kahoot-Answer/Answer030 Original.mp3"
+        ];
+
+        const MINECRAFT_ALBUM_PLAYLIST = [
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/01 - C418 - Key.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/02 - C418 - Door.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/03 - C418 - Subwoofer Lullaby.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/04 - C418 - Death.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/05 - C418 - Living Mice.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/06 - C418 - Moog City.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/07 - C418 - Haggstrom.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/08 - C418 - Minecraft.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/09 - C418 - Oxygène.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/10 - C418 - Équinoxe.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/11 - C418 - Mice on Venus.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/12 - C418 - Dry Hands.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/13 - C418 - Wet Hands.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/14 - C418 - Clark.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/15 - C418 - Chris.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/16 - C418 - Thirteen.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/17 - C418 - Excuse.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/18 - C418 - Sweden.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/19 - C418 - Cat.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/20 - C418 - Dog.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/21 - C418 - Danny.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/22 - C418 - Beginning.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/23 - C418 - Droopy Likes Ricochet.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/24 - C418 - Droopy Likes Your Face.mp3"
+        ];
+
+        function loadCurrentTrack() {
+            const musicAudio = document.getElementById('musicAudio');
+            if (musicPlaylist.length > 0) {
+                musicAudio.src = musicPlaylist[currentTrackIndex];
+                musicAudio.load();
+            }
+        }
+
+        function shufflePlaylist() {
+            for (let i = musicPlaylist.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [musicPlaylist[i], musicPlaylist[j]] = [musicPlaylist[j], musicPlaylist[i]];
+            }
+            currentTrackIndex = 0;
+        }
+        
+        function updateStartPauseButton() {
+            const button = document.getElementById('startPauseBtn');
+            if (!button) return;
+            if (isRunning) {
+                button.textContent = t('pause');
+                button.classList.remove('active-start');
+                button.classList.add('active-pause');
+                return;
+            }
+            button.classList.remove('active-pause');
+            if (totalSeconds > 0) {
+                button.textContent = t('resume');
+                button.classList.add('active-start');
+            } else {
+                button.textContent = t('start');
+                button.classList.remove('active-start');
+            }
+        }
+
+        function toggleTimer() {
+            if (isRunning) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
+        }
+
+        function startTimer() {
+            if (isRunning) return;
+            
+            if (totalSeconds === 0) {
+                showError(t('timerZero'));
+                return;
+            }
+            
+            if (totalSeconds === 0) {
+                const hours = parseInt(document.getElementById('hours').value) || 0;
+                const minutes = parseInt(document.getElementById('minutes').value) || 0;
+                const seconds = parseInt(document.getElementById('seconds').value) || 0;
+                totalSeconds = hours * 3600 + minutes * 60 + seconds;
+                lastSetSeconds = totalSeconds;
+                updateDisplay();
+            }
+            
+            if (totalSeconds <= 0) return;
+            
+            const wasPaused = isTimerPaused;
+            isTimerPaused = false;
+            // stop any previous end-blinking
+            stopEndBlinking();
+            isRunning = true;
+            updateStartPauseButton();
+            const runningText = document.getElementById('runningText');
+            runningText.textContent = t('running');
+            runningText.style.display = 'block';
+            if (musicEnabled) {
+                const musicAudio = document.getElementById('musicAudio');
+                // If the music was paused because the timer ended, resume from that position.
+                // Otherwise, if this is a fresh start (not a resume), restart from 0.
+                if (!wasPaused && !musicPausedByTimerEnd) {
+                    musicAudio.currentTime = 0;
+                }
+                musicAudio.play().catch(() => {});
+                // we've attempted to resume/start, clear the paused-by-end flag
+                musicPausedByTimerEnd = false;
+            }
+            // compute absolute end timestamp so the timer survives sleep/reloads
+            timerEndTimestamp = Date.now() + totalSeconds * 1000;
+            try { localStorage.setItem('timerEndTimestamp', String(timerEndTimestamp)); localStorage.setItem('timerRunning', 'true'); } catch (e) {}
+
+            interval = setInterval(() => {
+                const remainingMs = timerEndTimestamp - Date.now();
+                totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+                updateDisplay();
+                if (remainingMs <= 0) {
+                    clearInterval(interval);
+                    isRunning = false;
+                    isTimerPaused = false;
+                    timerFinished = true;
+                    document.getElementById('startPauseBtn').style.display = 'none';
+                    document.getElementById('resetBtn').style.display = 'none';
+                    document.getElementById('toggleInputsBtn').style.display = 'none';
+                    document.getElementById('finishedButtons').style.display = 'block';
+                    if (alarmEnabled) {
+                        const alarmAudio = document.getElementById('alarmAudio');
+                        alarmAudio.loop = true;
+                        alarmAudio.play();
+                    }
+                    const musicAudio = document.getElementById('musicAudio');
+                    // If music was playing when timer ended, remember that and pause it
+                    if (!musicAudio.paused && !musicAudio.ended) {
+                        musicPausedByTimerEnd = true;
+                    }
+                    musicAudio.pause();  // Musik stoppen bei Timer-Ende
+                    const runningText = document.getElementById('runningText');
+                    runningText.textContent = t('finished');
+                    runningText.style.display = 'block';
+                    showError(t('finished'));
+                    if (tabBlinkEnabled) {
+                        startEndBlinking();
+                    }
+                    if (blinkEnabled) {
+                        // add red blink to timer container
+                        document.getElementById('timerContainer').classList.add('blink-red');
+                    }
+                }
+            }, 1000);
+            // store lastSetSeconds as backup
+            lastSetSeconds = totalSeconds;
+        }
+
+        function pauseTimer() {
+            isRunning = false;
+            isTimerPaused = true;
+            clearInterval(interval);
+            document.getElementById('musicAudio').pause();
+            // persist remaining time and clear running flag
+            try {
+                localStorage.setItem('timerRunning', 'false');
+                if (typeof timerEndTimestamp === 'number') {
+                    const remainingMs = Math.max(0, timerEndTimestamp - Date.now());
+                    localStorage.setItem('timerRemainingMs', String(remainingMs));
+                }
+                localStorage.removeItem('timerEndTimestamp');
+            } catch (e) {}
+            updateStartPauseButton();
+            const runningText = document.getElementById('runningText');
+            runningText.textContent = t('paused');
+            runningText.style.display = 'block';
+        }
+
+        function confirmTime() {
+            // stop any end-blinking from previous finished run
+            stopEndBlinking();
+            const hours = parseInt(document.getElementById('hours').value) || 0;
+            const minutes = parseInt(document.getElementById('minutes').value) || 0;
+            const seconds = parseInt(document.getElementById('seconds').value) || 0;
+            totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            isTimerPaused = false;
+            lastSetSeconds = totalSeconds;
+            // persist last confirmed value so reset after reload shows it
+            try { localStorage.setItem('timerLastSetSeconds', String(lastSetSeconds)); } catch (e) {}
+            updateDisplay();
+            if (timerFinished) {
+                document.getElementById('alarmAudio').pause();
+                document.getElementById('alarmAudio').currentTime = 0;
+                document.getElementById('alarmAudio').loop = false;
+                document.getElementById('musicAudio').pause();
+                timerFinished = false;
+            document.getElementById('startPauseBtn').style.display = 'inline-block';
+            document.getElementById('resetBtn').style.display = 'inline-block';
+            document.getElementById('toggleInputsBtn').style.display = 'inline-block';
+            document.getElementById('finishedButtons').style.display = 'none';
+            document.getElementById('timerContainer').classList.remove('blink-red');
+            updateStartPauseButton();
+            }
+            // If timer is currently running, adopt the new time and restart the countdown
+            if (isRunning) {
+                try { stopEndBlinking(); } catch (e) {}
+                try { clearInterval(interval); } catch (e) {}
+                // compute new absolute end timestamp
+                timerEndTimestamp = Date.now() + totalSeconds * 1000;
+                try { localStorage.setItem('timerEndTimestamp', String(timerEndTimestamp)); localStorage.setItem('timerRunning', 'true'); } catch (e) {}
+
+                // attempt to ensure music continues appropriately
+                try {
+                    const musicAudio = document.getElementById('musicAudio');
+                    if (musicEnabled && musicAudio) {
+                        // on a mid-run change, restart music from 0
+                        musicAudio.currentTime = 0;
+                        musicAudio.play().catch(()=>{});
+                        musicPausedByTimerEnd = false;
+                    }
+                } catch (e) {}
+
+                // restart interval to count down towards new end timestamp
+                interval = setInterval(() => {
+                    const remainingMs = timerEndTimestamp - Date.now();
+                    totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+                    updateDisplay();
+                    if (remainingMs <= 0) {
+                        try{ handleTimerFinish(); }catch(e){}
+                    }
+                }, 1000);
+                updateStartPauseButton();
+            }
+        }
+
+        function resetTimer() {
+            // stop blinking if active
+            stopEndBlinking();
+            isRunning = false;
+            isTimerPaused = false;
+            clearInterval(interval);
+            totalSeconds = lastSetSeconds;
+            timerFinished = false;
+            updateDisplay();
+            document.getElementById('alarmAudio').pause();
+            document.getElementById('alarmAudio').currentTime = 0;
+            document.getElementById('alarmAudio').loop = false;
+            document.getElementById('musicAudio').pause();
+            // clearing reset should also clear the paused-by-end flag
+            musicPausedByTimerEnd = false;
+            document.getElementById('startPauseBtn').style.display = 'inline-block';
+            document.getElementById('resetBtn').style.display = 'inline-block';
+            document.getElementById('toggleInputsBtn').style.display = 'inline-block';
+            document.getElementById('finishedButtons').style.display = 'none';
+            const runningText = document.getElementById('runningText');
+            runningText.textContent = t('running');
+            runningText.style.display = 'none';
+            const startPauseBtn = document.getElementById('startPauseBtn');
+            startPauseBtn.textContent = t('start');
+            startPauseBtn.classList.remove('active-start');
+            startPauseBtn.classList.remove('active-pause');
+            document.getElementById('timerContainer').classList.remove('blink-red');
+            try { localStorage.removeItem('timerEndTimestamp'); localStorage.removeItem('timerRemainingMs'); localStorage.removeItem('timerRunning'); } catch (e) {}
+        }
+
+        function updateDisplay() {
+            const hours = Math.floor(totalSeconds / 3600);
+            const mins = Math.floor((totalSeconds % 3600) / 60);
+            const secs = totalSeconds % 60;
+            const displayText =
+                String(hours).padStart(2, '0') + ':' +
+                String(mins).padStart(2, '0') + ':' +
+                String(secs).padStart(2, '0');
+            document.getElementById('display').textContent = displayText;
+            // Show remaining time in tab title while timer is running, but
+            // don't override the end-blink title if it's active.
+            if (!endBlinkInterval) {
+                if (tabBlinkEnabled) {
+                    if (isRunning || (typeof totalSeconds === 'number' && totalSeconds > 0)) {
+                        document.title = displayText + ' - ' + BASE_TITLE;
+                    } else {
+                        document.title = BASE_TITLE;
+                    }
+                } else {
+                    // hide time in tab when tab display is disabled
+                    document.title = BASE_TITLE;
+                }
+            }
+            updateAnalogClockFromSeconds(totalSeconds);
+            adjustTimerContainerToDisplay();
+            // If the visible time is 00:00:00 and blinking is enabled, start tab blinking
+            // This covers the case where the timer reached 0 or was confirmed to 00:00:00
+            if (displayText === '00:00:00' && blinkEnabled && !endBlinkInterval && !isRunning) {
+                // only start if timer actually finished or a non-zero lastSetSeconds exists
+                if (timerFinished || (typeof lastSetSeconds !== 'undefined' && lastSetSeconds > 0)) {
+                    setTimeout(() => { if (blinkEnabled && !endBlinkInterval) startEndBlinking(); }, 50);
+                }
+            }
+        }
+
+        function adjustTimerContainerToDisplay() {
+            const timerContainer = document.getElementById('timerContainer');
+            const display = isAnalogMode
+                ? document.getElementById('analogDisplay')
+                : document.getElementById('display');
+            if (!timerContainer || !display) return;
+
+            const sidePadding = window.innerWidth <= 600 ? 26 : 56;
+            const desiredWidth = Math.ceil(display.scrollWidth + sidePadding);
+            const maxWidth = Math.floor(window.innerWidth * 0.92);
+            const minWidth = Math.min(280, maxWidth);
+            const targetWidth = Math.max(minWidth, Math.min(desiredWidth, maxWidth));
+
+            timerContainer.style.width = targetWidth + 'px';
+            timerContainer.style.minWidth = window.innerWidth <= 900 ? '0' : '280px';
+        }
+
+        function toggleAlarm() {
+            alarmEnabled = !alarmEnabled;
+            renderToggleButtonTexts();
+        }
+
+        function toggleMusic() {
+            musicEnabled = !musicEnabled;
+            if (musicEnabled && isRunning) {
+                document.getElementById('musicAudio').play().catch(() => {});
+            } else {
+                document.getElementById('musicAudio').pause();
+            }
+            renderToggleButtonTexts();
+        }
+
+        function changeAlarmSound() {
+            const alarmAudio = document.getElementById('alarmAudio');
+            const select = document.getElementById('alarmSound');
+            const fileInput = document.getElementById('alarmFile');
+            // Stop any playing preview first
+            alarmAudio.pause();
+            alarmAudio.currentTime = 0;
+            alarmPreviewPlaying = false;
+            if (select.value === 'upload') {
+                fileInput.style.display = 'block';
+                fileInput.value = '';
+                alarmAudio.src = '';
+                document.getElementById('alarmFileName').textContent = '';
+            } else {
+                fileInput.style.display = 'none';
+                document.getElementById('alarmFileName').textContent = '';
+                if (select.value) {
+                    alarmAudio.src = select.value;
+                    alarmAudio.load();
+                }
+            }
+            updatePreviewButtons();
+            updatePreviewButtons();
+        }
+
+        function changeMusicSound() {
+            const musicAudio = document.getElementById('musicAudio');
+            const select = document.getElementById('musicSound');
+            const fileInput = document.getElementById('musicFile');
+            // Stop any playing preview first
+            musicAudio.pause();
+            musicAudio.currentTime = 0;
+            musicPreviewPlaying = false;
+            // Remove existing ended listener to avoid multiples
+            musicAudio.removeEventListener('ended', nextMusicTrack);
+
+            if (select.value === 'upload') {
+                fileInput.style.display = 'block';
+                fileInput.value = '';
+                musicPlaylist = [];
+                musicAudio.src = '';
+                document.getElementById('musicFileName').textContent = '';
+            } else if (select.value === 'Kahoot Answer') {
+                fileInput.style.display = 'none';
+                document.getElementById('musicFileName').textContent = '';
+                musicPlaylist = [...KAHOT_ANSWER_PLAYLIST];
+                isMusicShuffle = true;
+                shufflePlaylist();
+                loadCurrentTrack();
+            } else if (select.value === 'Minecraft Album') {
+                fileInput.style.display = 'none';
+                document.getElementById('musicFileName').textContent = '';
+                musicPlaylist = [...MINECRAFT_ALBUM_PLAYLIST];
+                isMusicShuffle = false;
+                currentTrackIndex = 0;
+                loadCurrentTrack();
+            } else {
+                fileInput.style.display = 'none';
+                document.getElementById('musicFileName').textContent = '';
+                musicPlaylist = [select.value];
+                currentTrackIndex = 0;
+                isMusicShuffle = false;
+                loadCurrentTrack();
+            }
+
+            // Add ended listener if playlist has multiple tracks
+            if (musicPlaylist.length > 1) {
+                musicAudio.loop = false;
+                musicAudio.addEventListener('ended', nextMusicTrack);
+            } else {
+                musicAudio.loop = true;
+            }
+            musicAudio.load();
+
+            if (musicEnabled && isRunning && musicPlaylist.length > 0) {
+                musicAudio.play().catch((e) => showError(t('musicUnavailable')));
+            }
+            updatePreviewButtons();
+        }
+
+function toggleBlink() {
+            // legacy fallback - not used
+            blinkEnabled = !blinkEnabled;
+            renderToggleButtonTexts();
+        }
+
+        function toggleTabBlink() {
+            tabBlinkEnabled = !tabBlinkEnabled;
+            renderToggleButtonTexts();
+            console.debug('toggleTabBlink: tabBlinkEnabled=', tabBlinkEnabled, 'timerFinished=', timerFinished);
+            if (!tabBlinkEnabled) {
+                // disable: stop blinking and hide time in tab
+                stopEndBlinking();
+                document.title = BASE_TITLE;
+            } else {
+                // enable: show time in tab immediately and start blinking if finished
+                updateDisplay();
+                if (timerFinished) startEndBlinking();
+            }
+        }
+
+        function toggleContainerBlink() {
+            blinkEnabled = !blinkEnabled;
+            renderToggleButtonTexts();
+            console.debug('toggleContainerBlink: blinkEnabled=', blinkEnabled);
+            if (!blinkEnabled) {
+                document.getElementById('timerContainer').classList.remove('blink-red');
+            } else {
+                if (timerFinished) {
+                    document.getElementById('timerContainer').classList.add('blink-red');
+                }
+            }
+        }
+
+        function toggleErrorDisplay() {
+            showErrors = !showErrors;
+            renderToggleButtonTexts();
+        }
+
+        function nextMusicTrack() {
+            const musicAudio = document.getElementById('musicAudio');
+            if (musicPlaylist.length <= 1) return;
+            if (isMusicShuffle) {
+                currentTrackIndex = Math.floor(Math.random() * musicPlaylist.length);
+            } else {
+                currentTrackIndex = (currentTrackIndex + 1) % musicPlaylist.length;
+            }
+            loadCurrentTrack();
+            musicAudio.play().catch(() => {});
+        }
+        function previewAlarm() {
+            const audio = document.getElementById('alarmAudio');
+            const btn = document.getElementById('previewAlarmBtn');
+            if (!audio.src) return;
+
+            if (alarmPreviewPlaying) {
+                audio.pause();
+                audio.currentTime = 0;
+                alarmPreviewPlaying = false;
+                btn.textContent = t('previewAlarm');
+                updatePreviewButtons();
+                return;
+            }
+
+            if (!audio.paused) return;
+
+            audio.loop = false;
+            audio.currentTime = 0;
+            audio.play().catch(e => {
+                alarmPreviewPlaying = false;
+                updatePreviewButtons();
+                console.log('Preview failed:', e);
+            });
+            alarmPreviewPlaying = true;
+            btn.textContent = t('alarmRunning');
+            updatePreviewButtons();
+
+            audio.addEventListener('ended', function endHandler() {
+                alarmPreviewPlaying = false;
+                btn.textContent = t('previewAlarm');
+                updatePreviewButtons();
+                audio.removeEventListener('ended', endHandler);
+            }, {once: true});
+        }
+        function previewMusic() {
+            const audio = document.getElementById('musicAudio');
+            const btn = document.getElementById('previewMusicBtn');
+            if (musicPlaylist.length === 0 && !audio.src) return;
+
+            if (musicPreviewPlaying) {
+                audio.pause();
+                audio.currentTime = 0;
+                musicPreviewPlaying = false;
+                btn.textContent = t('previewMusic');
+                updatePreviewButtons();
+                return;
+            }
+
+            if (!audio.paused) return;
+
+            // Play first track for preview
+            if (musicPlaylist.length > 0) {
+                audio.src = musicPlaylist[0];
+            }
+            audio.loop = false;
+            audio.currentTime = 0;
+            audio.play().catch(e => {
+                musicPreviewPlaying = false;
+                updatePreviewButtons();
+                console.log('Preview failed:', e);
+            });
+            musicPreviewPlaying = true;
+            btn.textContent = t('musicRunning');
+            updatePreviewButtons();
+
+            const endHandler = () => {
+                musicPreviewPlaying = false;
+                btn.textContent = t('previewMusic');
+                updatePreviewButtons();
+                audio.removeEventListener('ended', endHandler);
+            };
+            audio.addEventListener('ended', endHandler, {once: true});
+        }
+        function updatePreviewButtons() {
+            const alarmBtn = document.getElementById('previewAlarmBtn');
+            const musicBtn = document.getElementById('previewMusicBtn');
+            const alarmAudio = document.getElementById('alarmAudio');
+            const musicAudio = document.getElementById('musicAudio');
+            if (alarmBtn) {
+                const alarmPlaying = !alarmAudio.paused && !alarmAudio.ended;
+                const canStopAlarmPreview = alarmPreviewPlaying && alarmPlaying;
+                alarmBtn.disabled = !alarmAudio.src || (alarmPlaying && !canStopAlarmPreview);
+                if (canStopAlarmPreview) {
+                    alarmBtn.textContent = t('stopAlarmPreview');
+                } else if (alarmPlaying) {
+                    alarmBtn.textContent = t('alarmRunning');
+                } else if (!alarmBtn.disabled) {
+                    alarmBtn.textContent = t('previewAlarm');
+                }
+            }
+            if (musicBtn) {
+                const musicPlaying = !musicAudio.paused && !musicAudio.ended;
+                const canStopMusicPreview = musicPreviewPlaying && musicPlaying;
+                musicBtn.disabled = !musicAudio.src || (musicPlaying && !canStopMusicPreview);
+                if (canStopMusicPreview) {
+                    musicBtn.textContent = t('stopMusicPreview');
+                } else if (musicPlaying) {
+                    musicBtn.textContent = t('musicRunning');
+                } else if (!musicBtn.disabled) {
+                    musicBtn.textContent = t('previewMusic');
+                }
+            }
+        }
+        function setAlarmVolume() {
+
+            document.getElementById('alarmAudio').volume = document.getElementById('alarmVolume').value;
+        }
+
+        function setMusicVolume() {
+            document.getElementById('musicAudio').volume = document.getElementById('musicVolume').value;
+        }
+
+        function muteAlarm() {
+            document.getElementById('alarmVolume').value = 0;
+            document.getElementById('alarmAudio').volume = 0;
+        }
+
+        function muteMusic() {
+            document.getElementById('musicVolume').value = 0;
+            document.getElementById('musicAudio').volume = 0;
+        }
+
+        function setTimerFontSize() {
+            applyDisplaySize();
+        }
+
+        function resetTimerFontSize() {
+            const defaultSize = 150;
+            document.getElementById('timerFontSize').value = defaultSize;
+            applyDisplaySize();
+        }
+
+        function setTimerColor() {
+            const color = document.getElementById('timerColor').value;
+            document.getElementById('display').style.color = color;
+            document.getElementById('runningText').style.color = color;
+            document.getElementById('analogDisplay').style.color = color;
+        }
+
+        function toggleColorMenu() {
+            const menu = document.getElementById('colorMenu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function pickColor(color) {
+            document.getElementById('timerColor').value = color;
+            setTimerColor();
+            try { localStorage.setItem('timerColorCustom','true'); } catch(e) {}
+        }
+
+        function toggleContainerColorMenu() {
+            const menu = document.getElementById('containerColorMenu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function pickContainerColor(color) {
+            document.getElementById('containerColor').value = color;
+            document.querySelectorAll('.container').forEach(function(container) {
+                container.style.background = color;
+            });
+            try { localStorage.setItem('containerColorCustom','true'); } catch(e) {}
+        }
+
+        function toggleBgColorMenu() {
+            const menu = document.getElementById('bgColorMenu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function pickBgColor(color) {
+            document.getElementById('bgColor').value = color;
+            document.body.style.background = color;
+            try { localStorage.setItem('bgColorCustom','true'); } catch(e) {}
+        }
+
+        function resetColors() {
+            const isDark = document.body.classList.contains('dark-mode');
+            
+            // Hintergrund
+            document.body.style.background = isDark 
+                ? 'linear-gradient(135deg, #0c1120 0%, #170f20 100%)' 
+                : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            document.getElementById('bgColor').value = isDark ? '#0c1120' : '#667eea';
+            
+            // Container
+            const containerColor = isDark ? '#1e1e2f' : '#ffffff';
+            document.querySelectorAll('.container').forEach(function(container) {
+                container.style.background = containerColor;
+            });
+            document.getElementById('containerColor').value = containerColor;
+            
+            // Timer-Farbe
+            const timerColor = isDark ? '#e0e0e0' : '#333333';
+            document.getElementById('display').style.color = timerColor;
+            document.getElementById('runningText').style.color = timerColor;
+            document.getElementById('analogDisplay').style.color = timerColor;
+            document.getElementById('timerColor').value = timerColor;
+            try {
+                localStorage.removeItem('timerColorCustom');
+                localStorage.removeItem('containerColorCustom');
+                localStorage.removeItem('bgColorCustom');
+            } catch (e) {}
+        }
+
+        function updateAnalogClockFromSeconds(totalSecondsValue) {
+            const safeSeconds = Math.max(0, totalSecondsValue);
+            const hours = Math.floor(safeSeconds / 3600) % 12;
+            const minutes = Math.floor((safeSeconds % 3600) / 60);
+            const seconds = safeSeconds % 60;
+
+            const hourAngle = hours * 30 + minutes * 0.5;
+            const minuteAngle = minutes * 6 + seconds * 0.1;
+            const secondAngle = seconds * 6;
+
+            document.getElementById('analogHourHand').style.transform = 'translateX(-50%) rotate(' + hourAngle + 'deg)';
+            document.getElementById('analogMinuteHand').style.transform = 'translateX(-50%) rotate(' + minuteAngle + 'deg)';
+            document.getElementById('analogSecondHand').style.transform = 'translateX(-50%) rotate(' + secondAngle + 'deg)';
+        }
+
+        function decorateAnalogFace(face) {
+            if (!face || face.dataset.decorated === '1') return;
+
+            const minorTicks = document.createElement('div');
+            minorTicks.className = 'analog-ticks analog-ticks-minor';
+
+            const majorTicks = document.createElement('div');
+            majorTicks.className = 'analog-ticks analog-ticks-major';
+
+            const numbers = document.createElement('div');
+            numbers.className = 'analog-numbers';
+            for (let i = 1; i <= 12; i++) {
+                const number = document.createElement('span');
+                const angle = (i / 12) * (Math.PI * 2) - Math.PI / 2;
+                const x = 50 + Math.cos(angle) * 38;
+                const y = 50 + Math.sin(angle) * 38;
+                number.className = 'analog-number';
+                number.textContent = String(i);
+                number.style.left = x + '%';
+                number.style.top = y + '%';
+                numbers.appendChild(number);
+            }
+
+            face.insertBefore(minorTicks, face.firstChild);
+            face.insertBefore(majorTicks, face.firstChild);
+            face.insertBefore(numbers, face.firstChild);
+            face.dataset.decorated = '1';
+        }
+
+        function applyDisplaySize() {
+            const size = Number(document.getElementById('timerFontSize').value) || 150;
+            document.getElementById('display').style.fontSize = size + 'px';
+
+            const analogFace = document.querySelector('#analogDisplay .analog-clock-face');
+            const analogSize = Math.max(130, Math.min(460, Math.round(size * 1.6)));
+            analogFace.style.width = analogSize + 'px';
+            analogFace.style.height = analogSize + 'px';
+            const analogNumberSize = Math.max(9, Math.min(18, Math.round(analogSize * 0.06)));
+            analogFace.style.setProperty('--analog-number-size', analogNumberSize + 'px');
+            const handScale = analogSize / 220;
+            const hourWidth = Math.max(7, Math.min(16, Math.round(10 * handScale)));
+            const minuteWidth = Math.max(5, Math.min(12, Math.round(7 * handScale)));
+            const secondWidth = Math.max(2, Math.min(5, Math.round(2 * handScale)));
+            const handBorder = Math.max(1, Math.min(3, Math.round(2 * handScale * 0.85)));
+            analogFace.style.setProperty('--analog-hour-width', hourWidth + 'px');
+            analogFace.style.setProperty('--analog-minute-width', minuteWidth + 'px');
+            analogFace.style.setProperty('--analog-second-width', secondWidth + 'px');
+            analogFace.style.setProperty('--analog-hand-border', handBorder + 'px');
+
+            adjustTimerContainerToDisplay();
+            // apply proportional UI scaling so title, inputs and buttons scale with text size
+            // slider is in percent-like units (default 150 -> scale 1)
+            const uiScale = Math.max(0.5, Math.min(3, size / 150));
+            if (typeof setUiScale === 'function') setUiScale(uiScale);
+        }
+
+        function applyAnalogMode() {
+            const timerContainer = document.getElementById('timerContainer');
+            const analogDisplay = document.getElementById('analogDisplay');
+            const modeStatus = document.getElementById('analogModeStatus');
+            const sizeLabel = document.getElementById('sizeSettingLabel');
+            decorateAnalogFace(document.querySelector('#analogDisplay .analog-clock-face'));
+
+            timerContainer.classList.toggle('analog-mode', isAnalogMode);
+            analogDisplay.setAttribute('aria-hidden', isAnalogMode ? 'false' : 'true');
+            modeStatus.textContent = statusText(isAnalogMode);
+            sizeLabel.textContent = isAnalogMode ? t('clockSize') : t('textSize');
+
+            applyDisplaySize();
+            updateDisplay();
+        }
+
+        function toggleAnalogMode() {
+            isAnalogMode = !isAnalogMode;
+            applyAnalogMode();
+        }
+
+function stopAlarm() {
+            const runningText = document.getElementById('runningText');
+            runningText.style.display = 'none';
+            clearError();
+            stopEndBlinking();
+            resetTimer();
+        }
+
+        function repeatTimer() {
+            stopEndBlinking();
+            totalSeconds = lastSetSeconds;
+            timerFinished = false;
+            updateDisplay();
+            document.getElementById('alarmAudio').pause();
+            document.getElementById('alarmAudio').currentTime = 0;
+            document.getElementById('alarmAudio').loop = false;
+            document.getElementById('startPauseBtn').style.display = 'inline-block';
+            document.getElementById('resetBtn').style.display = 'inline-block';
+            document.getElementById('toggleInputsBtn').style.display = 'inline-block';
+            document.getElementById('finishedButtons').style.display = 'none';
+            const runningText = document.getElementById('runningText');
+            runningText.textContent = t('running');
+            runningText.style.display = 'block';
+            document.getElementById('timerContainer').classList.remove('blink-red');
+            startTimer();  // Automatisch starten
+        }
+
+        // Helper: format seconds as HH:MM:SS
+        function formatTime(seconds) {
+            const hrs = Math.floor(Math.max(0, seconds) / 3600);
+            const mins = Math.floor((Math.max(0, seconds) % 3600) / 60);
+            const secs = Math.max(0, seconds) % 60;
+            return String(hrs).padStart(2, '0') + ':' + String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+        }
+
+        function maskTimeWithX(timeStr) {
+            return String(timeStr || '').replace(/\d/g, 'X');
+        }
+
+        function startEndBlinking() {
+            stopEndBlinking();
+            endBlinkShowX = false;
+            const original = formatTime(totalSeconds) || '00:00:00';
+            const masked = maskTimeWithX(original);
+            console.debug('startEndBlinking: original=', original, 'masked=', masked, 'tabBlinkEnabled=', tabBlinkEnabled);
+            if (!tabBlinkEnabled) return;
+            document.title = original + ' - ' + BASE_TITLE;
+            endBlinkInterval = setInterval(() => {
+                if (!tabBlinkEnabled) return stopEndBlinking();
+                endBlinkShowX = !endBlinkShowX;
+                document.title = (endBlinkShowX ? masked : original) + ' - ' + BASE_TITLE;
+            }, 600);
+        }
+
+        function stopEndBlinking() {
+            if (endBlinkInterval) {
+                clearInterval(endBlinkInterval);
+                endBlinkInterval = null;
+            }
+            // restore tab title only; leave on-page display untouched
+            console.debug('stopEndBlinking');
+            document.title = BASE_TITLE;
+        }
+
+// Initialize sounds and error listeners
+        const alarmAudio = document.getElementById('alarmAudio');
+        const musicAudio = document.getElementById('musicAudio');
+
+        ['play', 'pause', 'ended'].forEach(function(evt) {
+            alarmAudio.addEventListener(evt, updatePreviewButtons);
+            musicAudio.addEventListener(evt, updatePreviewButtons);
+        });
+        
+        function handleAudioError(e) {
+            const src = e.target.src.split('?')[0].split('#')[0];
+            showError(t('soundNotFound') + decodeURIComponent(src.split('/').pop()));
+        }
+        
+        alarmAudio.addEventListener('error', handleAudioError);
+        musicAudio.addEventListener('error', handleAudioError);
+        
+        changeAlarmSound();
+        changeMusicSound();
+        setAlarmVolume();
+        setMusicVolume();
+        updatePreviewButtons();
+        const timerColorEl = document.getElementById('timerColor');
+        if (timerColorEl) {
+            timerColorEl.value = rgbToHex(getComputedStyle(document.getElementById('display')).color);
+            setTimerColor();
+        }
+        applyAnalogMode();
+        adjustTimerContainerToDisplay();
+        updateStartPauseButton();
+        document.getElementById('errorText').textContent = t('soundNotFound').replace(/: $/, '!');
+        renderToggleButtonTexts();
+        applyLanguage();
+
+        // File upload listeners
+        document.getElementById('alarmFile').addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                document.getElementById('alarmAudio').src = url;
+                document.getElementById('alarmFileName').textContent = file.name;
+            } else {
+                document.getElementById('alarmFileName').textContent = '';
+            }
+            this.value = '';
+            updatePreviewButtons();
+        });
+
+        document.getElementById('musicFile').addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                const musicAudio = document.getElementById('musicAudio');
+                musicAudio.src = url;
+                document.getElementById('musicFileName').textContent = file.name;
+                if (musicEnabled && isRunning) {
+                    musicAudio.play();
+                }
+            } else {
+                document.getElementById('musicFileName').textContent = '';
+            }
+            if (musicEnabled && isRunning) {
+                musicAudio.currentTime = 0;
+                musicAudio.play().catch(() => {});
+            }
+            this.value = '';
+            updatePreviewButtons();
+        });
+        // Z-index management
+        let highestZIndex = 10;
+
+        function bringToFront(element) {
+            highestZIndex++;
+            element.style.zIndex = highestZIndex;
+        }
+
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('.container, .sound-panel, .clock');
+            if (target) {
+                bringToFront(target);
+            }
+        }, true);
+
+        function togglePanel() {
+            const content = document.getElementById('panelContent');
+            const arrow = document.getElementById('panelArrow');
+            content.classList.toggle('collapsed');
+            arrow.classList.toggle('collapsed');
+        }
+
+        function toggleSection(id) {
+            event.stopPropagation();
+            const content = document.getElementById('content-' + id);
+            const arrow = document.getElementById('arrow-' + id);
+            content.classList.toggle('collapsed');
+            arrow.classList.toggle('collapsed');
+        }
+
+        const moonSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+        const sunSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
+
+        window.addEventListener('resize', adjustTimerContainerToDisplay);
+
+        function toggleDarkMode() {
+            const timerColorControl = document.getElementById('timerColor');
+            const previousColor = (timerColorControl.value || '').toLowerCase();
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            document.getElementById('darkModeStatus').textContent = statusText(isDark);
+            if (isDark && previousColor === '#333333') {
+                timerColorControl.value = '#e0e0e0';
+            } else if (!isDark && previousColor === '#e0e0e0') {
+                timerColorControl.value = '#333333';
+            }
+            // preserve user custom colors when switching theme
+            const isCustomTimer = (function(){ try{ return localStorage.getItem('timerColorCustom') === 'true'; }catch(e){return false;} })();
+            const isCustomContainer = (function(){ try{ return localStorage.getItem('containerColorCustom') === 'true'; }catch(e){return false;} })();
+            const isCustomBg = (function(){ try{ return localStorage.getItem('bgColorCustom') === 'true'; }catch(e){return false;} })();
+
+            if (!isCustomBg) {
+                document.body.style.background = isDark 
+                    ? 'linear-gradient(135deg, #0c1120 0%, #170f20 100%)' 
+                    : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                try { document.getElementById('bgColor').value = isDark ? '#0c1120' : '#667eea'; } catch(e) {}
+            }
+
+            if (!isCustomContainer) {
+                const containerColor = isDark ? '#1e1e2f' : '#ffffff';
+                document.querySelectorAll('.container').forEach(function(container) {
+                    container.style.background = containerColor;
+                });
+                try { document.getElementById('containerColor').value = containerColor; } catch(e) {}
+            }
+
+            if (!isCustomTimer) {
+                // if user didn't pick a custom timer color, apply sensible default for theme
+                const defaultTimer = isDark ? '#e0e0e0' : '#333333';
+                document.getElementById('timerColor').value = defaultTimer;
+                setTimerColor();
+            } else {
+                // still apply the current timerColor value
+                setTimerColor();
+            }
+            const toolbarBtn = document.getElementById('darkModeToggleBtn');
+            if (toolbarBtn) {
+                toolbarBtn.innerHTML = isDark ? moonSvg : sunSvg;
+                toolbarBtn.title = isDark ? t('darkModeTooltip') : t('lightModeTooltip');
+            }
+            renderToggleButtonTexts();
+        }
+
+
+
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            const secs = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('clock').textContent = hours + ':' + mins + ':' + secs;
+        }
+        initMusicHint();
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        function toggleSettingsPanel() {
+            const panel = document.querySelector('.sound-panel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                bringToFront(panel);
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        function showProgramHelp() {
+            const overlay = document.getElementById('helpOverlay');
+            const title = document.getElementById('helpTitle');
+            const body = document.getElementById('helpBody');
+            if (currentLanguage === 'en') {
+                title.textContent = 'Timer with Background Music';
+                body.innerHTML = '<section><h3>How to use the app</h3><ul><li>Enter hours, minutes, and seconds.</li><li>Tap "Confirm".</li><li>Use "Start" to begin, "Pause" to stop, and "Resume" to continue.</li><li>Use "Reset" to restore the last confirmed value.</li><li>When time is up, "Stop" and "Repeat" are available.</li></ul></section><section><h3>Features</h3><ul><li>Enable/disable and preview background music.</li><li>Enable/disable and preview alarm sound.</li><li>Customize colors, text size, and dark mode.</li><li>Show or hide input fields.</li></ul></section><section><h3>Browser audio</h3><ul><li>No special browser permissions are required for playback.</li><li>Your browser must allow sound and the tab must not be muted.</li><li>If autoplay is blocked, tap any button once to enable playback.</li></ul></section>';
+            } else {
+                title.textContent = 'Timer mit Hintergrundmusik';
+                body.innerHTML = '<section><h3>So benutzt du das Programm</h3><ul><li>Stunden, Minuten und Sekunden eingeben.</li><li>Auf „Bestätigen“ tippen.</li><li>Mit „Start“ starten, mit „Pause“ anhalten und mit „Weiter“ fortsetzen.</li><li>Mit „Zurücksetzen“ den zuletzt bestätigten Wert wiederherstellen.</li><li>Nach Ablauf stehen „Stop“ und „Wiederholen“ bereit.</li></ul></section><section><h3>Funktionen</h3><ul><li>Hintergrundmusik ein- oder ausschalten und vorhören.</li><li>Klingelton ein- oder ausschalten und vorhören.</li><li>Farben, Schriftgröße und Darkmode anpassen.</li><li>Eingaben ein- oder ausblenden.</li></ul></section><section><h3>Browser-Ton</h3><ul><li>Für die Wiedergabe sind keine besonderen Browser-Rechte nötig.</li><li>Der Browser muss Ton erlauben und darf den Tab nicht stumm schalten.</li><li>Falls Autoplay blockiert wird, einmal auf einen Button tippen, damit der Ton startet.</li></ul></section>';
+            }
+            overlay.classList.add('visible');
+            overlay.setAttribute('aria-hidden', 'false');
+        }
+
+        function hideProgramHelp() {
+            const overlay = document.getElementById('helpOverlay');
+            overlay.classList.remove('visible');
+            overlay.setAttribute('aria-hidden', 'true');
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                hideProgramHelp();
+            }
+        });
+
+        function toggleInputs() {
+            const inputsRow = document.querySelector('#inputContainer .inputs-row');
+            const toggleBtn = document.getElementById('toggleInputsBtn');
+            if (!inputsRow) return;
+            const isHidden = window.getComputedStyle(inputsRow).display === 'none';
+            if (isHidden) {
+                inputsRow.style.display = 'flex';
+                bringToFront(inputsRow.parentElement || inputsRow);
+                toggleBtn.textContent = t('hideInputs');
+            } else {
+                inputsRow.style.display = 'none';
+                // ensure title remains visible and edit input hidden
+                const edit = document.getElementById('inputTitleEdit');
+                const title = document.getElementById('inputTitle');
+                if (edit) edit.style.display = 'none';
+                if (title) title.style.display = 'block';
+                toggleBtn.textContent = t('showInputs');
+            }
+        }
+
+        // Editable title above inputs
+        function enableTitleEdit() {
+            const title = document.getElementById('inputTitle');
+            const edit = document.getElementById('inputTitleEdit');
+            const editRow = document.querySelector('.title-edit-row');
+            const saveBtn = document.getElementById('inputTitleSaveBtn');
+            edit.value = title.textContent || '';
+            title.style.display = 'none';
+            if (editRow) editRow.style.display = 'flex';
+            if (saveBtn) saveBtn.style.display = 'inline-flex';
+            edit.style.display = 'block';
+            edit.focus();
+            // move caret to end
+            const len = edit.value.length;
+            edit.setSelectionRange(len, len);
+        }
+
+        function saveTitleEdit() {
+            const title = document.getElementById('inputTitle');
+            const edit = document.getElementById('inputTitleEdit');
+            const val = (edit.value || '').trim();
+            title.textContent = val === '' ? 'Timer' : val;
+            const editRow = document.querySelector('.title-edit-row');
+            const saveBtn = document.getElementById('inputTitleSaveBtn');
+            if (editRow) editRow.style.display = 'none';
+            if (saveBtn) saveBtn.style.display = 'none';
+            edit.style.display = 'none';
+            title.style.display = 'block';
+        }
+
+        function cancelTitleEdit() {
+            const title = document.getElementById('inputTitle');
+            const edit = document.getElementById('inputTitleEdit');
+            const editRow = document.querySelector('.title-edit-row');
+            const saveBtn = document.getElementById('inputTitleSaveBtn');
+            if (editRow) editRow.style.display = 'none';
+            if (saveBtn) saveBtn.style.display = 'none';
+            edit.style.display = 'none';
+            title.style.display = 'block';
+        }
+
+        function handleTitleKey(e) {
+            if (e.key === 'Enter') {
+                e.target.blur();
+            } else if (e.key === 'Escape') {
+                cancelTitleEdit();
+            }
+        }
+
+        // Favicon Clock
+        (function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            
+            function updateFaviconClock() {
+                const now = new Date();
+                const isDark = document.body.classList.contains('dark-mode');
+                
+                // Background
+                ctx.fillStyle = isDark ? '#1e1e2f' : '#ffffff';
+                ctx.beginPath();
+                ctx.arc(32, 32, 32, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Border
+                ctx.strokeStyle = isDark ? '#4a5a9e' : '#667eea';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(32, 32, 30, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Hour markers
+                ctx.strokeStyle = isDark ? '#e0e0e0' : '#333333';
+                ctx.lineWidth = 1.5;
+                for (let i = 0; i < 12; i++) {
+                    const angle = (i * 30 - 90) * Math.PI / 180;
+                    const x1 = 32 + 24 * Math.cos(angle);
+                    const y1 = 32 + 24 * Math.sin(angle);
+                    const x2 = 32 + 28 * Math.cos(angle);
+                    const y2 = 32 + 28 * Math.sin(angle);
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                }
+                
+                // Hands
+                const hours = now.getHours() % 12;
+                const minutes = now.getMinutes();
+                const seconds = now.getSeconds();
+                
+                // Hour hand
+                const hourAngle = ((hours + minutes / 60) * 30 - 90) * Math.PI / 180;
+                ctx.strokeStyle = isDark ? '#e0e0e0' : '#333333';
+                ctx.lineWidth = 5;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(32, 32);
+                ctx.lineTo(32 + 16 * Math.cos(hourAngle), 32 + 16 * Math.sin(hourAngle));
+                ctx.stroke();
+                
+                // Minute hand
+                const minuteAngle = ((minutes + seconds / 60) * 6 - 90) * Math.PI / 180;
+                ctx.strokeStyle = isDark ? '#e0e0e0' : '#333333';
+                ctx.lineWidth = 3.5;
+                ctx.beginPath();
+                ctx.moveTo(32, 32);
+                ctx.lineTo(32 + 22 * Math.cos(minuteAngle), 32 + 22 * Math.sin(minuteAngle));
+                ctx.stroke();
+                
+                // Second hand
+                const secondAngle = (seconds * 6 - 90) * Math.PI / 180;
+                ctx.strokeStyle = '#ff0000';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(32, 32);
+                ctx.lineTo(32 + 24 * Math.cos(secondAngle), 32 + 24 * Math.sin(secondAngle));
+                ctx.stroke();
+                
+                // Center dot
+                ctx.fillStyle = isDark ? '#4a5a9e' : '#667eea';
+                ctx.beginPath();
+                ctx.arc(32, 32, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Update favicon
+                let link = document.getElementById('favicon');
+                if (!link) {
+                    link = document.createElement('link');
+                    link.id = 'favicon';
+                    link.rel = 'icon';
+                    link.type = 'image/png';
+                    document.head.appendChild(link);
+                }
+                link.href = canvas.toDataURL('image/png');
+            }
+            
+            updateFaviconClock();
+            setInterval(updateFaviconClock, 1000);
+        })();
+            // Restore timer state and last-confirmed inputs across sleep/reload
+            try {
+                const running = localStorage.getItem('timerRunning');
+                const endTs = localStorage.getItem('timerEndTimestamp');
+                const remainingMsSaved = localStorage.getItem('timerRemainingMs');
+                const lastSet = localStorage.getItem('timerLastSetSeconds');
+                if (lastSet) {
+                    lastSetSeconds = Number(lastSet) || 0;
+                    // Do NOT populate the input fields on load; keep them empty.
+                }
+
+                // Audio unlock helpers: try to resume audio so alarms can autoplay after reload.
+                let audioUnlocked = false;
+                let pendingAlarm = false;
+                function handleTimerFinish(){
+                    try { document.getElementById('startPauseBtn').style.display = 'none'; } catch(e){}
+                    try { document.getElementById('resetBtn').style.display = 'none'; } catch(e){}
+                    try { document.getElementById('toggleInputsBtn').style.display = 'none'; } catch(e){}
+                    try { document.getElementById('finishedButtons').style.display = 'block'; } catch(e){}
+
+                    if (alarmEnabled) {
+                        try {
+                            const alarmAudio = document.getElementById('alarmAudio');
+                            if (alarmAudio) {
+                                alarmAudio.loop = true;
+                                try {
+                                    const p = alarmAudio.play();
+                                    if (p && typeof p.then === 'function') {
+                                        p.then(()=>{ pendingAlarm = false; }).catch(()=>{
+                                            setTimeout(()=>{ try{ if(!alarmAudio || alarmAudio.paused){ pendingAlarm = true; showEnableSoundButton(); } }catch(e){} }, 250);
+                                        });
+                                    } else {
+                                        setTimeout(()=>{ try{ if(!alarmAudio || alarmAudio.paused){ pendingAlarm = true; showEnableSoundButton(); } }catch(e){} }, 250);
+                                    }
+                                } catch(e) { pendingAlarm = true; showEnableSoundButton(); }
+                            }
+                        } catch (e) {}
+                    }
+
+                    try {
+                        const musicAudio = document.getElementById('musicAudio');
+                        if (musicAudio && !musicAudio.paused && !musicAudio.ended) {
+                            musicPausedByTimerEnd = true;
+                        }
+                        if (musicAudio) musicAudio.pause();
+                    } catch (e) {}
+
+                    try { const runningText = document.getElementById('runningText'); runningText.textContent = t('finished'); runningText.style.display = 'block'; } catch (e) {}
+                    try { showError(t('finished')); } catch (e) {}
+                    try { if (tabBlinkEnabled) startEndBlinking(); } catch (e) {}
+                    try { if (blinkEnabled) document.getElementById('timerContainer').classList.add('blink-red'); } catch (e) {}
+                    try { updateDisplay(); } catch (e) {}
+                    try{ timerFinished = true; }catch(e){}
+                    try{ isRunning = false; }catch(e){}
+                    try{ clearInterval(interval); }catch(e){}
+                }
+                function showEnableSoundButton() {
+                    try {
+                        if (document.getElementById('enableSoundNotice')) return;
+                        const notice = document.createElement('div');
+                        notice.id = 'enableSoundNotice';
+                        notice.className = 'error-message';
+                        notice.style.top = '70px';
+                        notice.style.left = '20px';
+                        notice.style.zIndex = 2147483647;
+                        notice.innerHTML = '<span id="enableSoundText">Ton konnte nicht automatisch gestartet werden. Bitte Ton aktivieren, damit der Alarm abgespielt werden kann.</span>';
+                        const btn = document.createElement('button');
+                        btn.id = 'enableSoundNoticeBtn';
+                        btn.textContent = 'Ton aktivieren';
+                        btn.style.marginLeft = '10px';
+                        btn.style.background = '#28a745';
+                        btn.style.color = '#fff';
+                        btn.addEventListener('click', async function() {
+                            try {
+                                // Mark audio unlocked immediately (user gesture)
+                                audioUnlocked = true;
+                                try { localStorage.setItem('audioUnlocked', 'true'); } catch (e) {}
+
+                                // Attempt to play alarm directly as part of the user gesture
+                                try {
+                                    const alarmAudio = document.getElementById('alarmAudio');
+                                    if (alarmAudio && pendingAlarm) {
+                                        try {
+                                            alarmAudio.currentTime = 0;
+                                        } catch(e){}
+                                        try {
+                                            await alarmAudio.play();
+                                            pendingAlarm = false;
+                                        } catch (playErr) {
+                                            // As a fallback try the unlock routine and play again
+                                            try { await ensureAudioUnlocked(); await alarmAudio.play(); pendingAlarm = false; } catch(e2){ pendingAlarm = true; }
+                                        }
+                                    } else {
+                                        // still ensure audio subsystem is unlocked
+                                        try { await ensureAudioUnlocked(); } catch(e){}
+                                    }
+                                } catch (e) { /* ignore */ }
+
+                                try { document.body.removeChild(notice); } catch (e) {}
+                            } catch (e) {}
+                        });
+                        notice.appendChild(btn);
+                        document.body.appendChild(notice);
+                    } catch (e) {}
+                }
+
+                async function ensureAudioUnlocked() {
+                    if (audioUnlocked) return true;
+                    try {
+                        // Resume WebAudio context if any
+                        if (window.AudioContext || window.webkitAudioContext) {
+                            const C = window.AudioContext || window.webkitAudioContext;
+                            const ctx = new C();
+                            try { await ctx.resume(); } catch (e) {}
+                            try { ctx.close(); } catch (e) {}
+                        }
+                        // Try to play a short silent blob via an <audio> element as a gesture-less unlock attempt
+                        const silent = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=');
+                        silent.volume = 0; silent.muted = true;
+                        try { await silent.play(); silent.pause(); } catch (e) {}
+                        audioUnlocked = true;
+                        try { localStorage.setItem('audioUnlocked', 'true'); } catch (e) {}
+                        // if there was a pending alarm, play it now
+                        if (pendingAlarm) {
+                            try { const alarmAudio = document.getElementById('alarmAudio'); if (alarmAudio) alarmAudio.play().catch(()=>{}); pendingAlarm = false; } catch (e) {}
+                        }
+                        return true;
+                    } catch (e) {
+                        return false;
+                    }
+                }
+
+                // Also unlock on first user interaction
+                function interactionUnlock() { ensureAudioUnlocked(); document.removeEventListener('pointerdown', interactionUnlock); document.removeEventListener('keydown', interactionUnlock); }
+                document.addEventListener('pointerdown', interactionUnlock);
+                document.addEventListener('keydown', interactionUnlock);
+
+                // Persistent enable-sound button: show until user explicitly enabled audio
+                try {
+                    const already = localStorage.getItem('audioUnlocked');
+                    if (already !== 'true') {
+                        showEnableSoundButton();
+                    }
+                    // If user has previously unlocked, mark audioUnlocked
+                    if (already === 'true') audioUnlocked = true;
+                } catch (e) {}
+
+                if (running === 'true' && endTs) {
+                    timerEndTimestamp = Number(endTs);
+                    const remainingMs = timerEndTimestamp - Date.now();
+                    totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+                        if (remainingMs > 0) {
+                        isRunning = true;
+                        interval = setInterval(() => {
+                            const rem = timerEndTimestamp - Date.now();
+                            totalSeconds = Math.max(0, Math.ceil(rem / 1000));
+                            updateDisplay();
+                                if (rem <= 0) {
+                                    try{ handleTimerFinish(); }catch(e){}
+                                }
+                        }, 1000);
+                        updateStartPauseButton();
+                        // show running UI same as startTimer
+                        try {
+                            const runningText = document.getElementById('runningText');
+                            runningText.textContent = t('running');
+                            runningText.style.display = 'block';
+                        } catch (e) {}
+                        // try to resume background music if enabled
+                        try {
+                            const musicAudio = document.getElementById('musicAudio');
+                            if (musicEnabled && musicAudio) {
+                                musicAudio.play().catch(() => {});
+                                musicPausedByTimerEnd = false;
+                            }
+                        } catch (e) {}
+                        // Always show enable-sound notice on reload when timer is running
+                        try { showEnableSoundButton(); } catch (e) {}
+                    } else {
+                        totalSeconds = 0;
+                        isRunning = false;
+                        timerFinished = true;
+                        // replicate finish behavior as if timer reached 0 while running
+                        try {
+                            document.getElementById('startPauseBtn').style.display = 'none';
+                            document.getElementById('resetBtn').style.display = 'none';
+                            document.getElementById('toggleInputsBtn').style.display = 'none';
+                            document.getElementById('finishedButtons').style.display = 'block';
+                        } catch (e) {}
+
+                            if (alarmEnabled) {
+                                try{ handleTimerFinish(); }catch(e){}
+                            }
+                        try {
+                            const musicAudio = document.getElementById('musicAudio');
+                            if (musicAudio && !musicAudio.paused && !musicAudio.ended) {
+                                musicPausedByTimerEnd = true;
+                            }
+                            if (musicAudio) musicAudio.pause();
+                        } catch (e) {}
+                        try {
+                            const runningText = document.getElementById('runningText');
+                            runningText.textContent = t('finished');
+                            runningText.style.display = 'block';
+                        } catch (e) {}
+                        try { showError(t('finished')); } catch (e) {}
+                        if (tabBlinkEnabled) startEndBlinking();
+                        if (blinkEnabled) {
+                            try { document.getElementById('timerContainer').classList.add('blink-red'); } catch (e) {}
+                        }
+                        updateDisplay();
+                    }
+                } else if (remainingMsSaved) {
+                    const rem = Number(remainingMsSaved);
+                    totalSeconds = Math.max(0, Math.ceil(rem / 1000));
+                    updateDisplay();
+                } else if (typeof lastSetSeconds === 'number' && lastSetSeconds > 0) {
+                    // no running timer, but show last confirmed value after reload
+                    totalSeconds = lastSetSeconds;
+                    updateDisplay();
+                }
+            } catch (e) {}
+
+            // Extra safety: if stored end timestamp is in the past, ensure we run finish logic now.
+            try {
+                const endTsCheck = Number(localStorage.getItem('timerEndTimestamp'));
+                if (endTsCheck && Date.now() >= endTsCheck) {
+                    // If not already marked finished, apply finish UI and handle alarm/play notice
+                    if (!timerFinished) {
+                        timerFinished = true;
+                        isRunning = false;
+                        try { clearInterval(interval); } catch (e) {}
+                        try {
+                            document.getElementById('startPauseBtn').style.display = 'none';
+                            document.getElementById('resetBtn').style.display = 'none';
+                            document.getElementById('toggleInputsBtn').style.display = 'none';
+                            document.getElementById('finishedButtons').style.display = 'block';
+                        } catch (e) {}
+
+                        if (alarmEnabled) {
+                            try {
+                                const alarmAudio = document.getElementById('alarmAudio');
+                                alarmAudio.loop = true;
+                                // Try to play; if blocked show notice
+                                try {
+                                    const p = alarmAudio.play();
+                                    setTimeout(()=>{
+                                        try {
+                                            if (!alarmAudio || alarmAudio.paused) {
+                                                pendingAlarm = true;
+                                                showEnableSoundButton();
+                                            }
+                                        } catch(e){ pendingAlarm = true; showEnableSoundButton(); }
+                                    }, 250);
+                                } catch (e) { pendingAlarm = true; showEnableSoundButton(); }
+                            } catch (e) {}
+                        }
+
+                        try { const runningText = document.getElementById('runningText'); runningText.textContent = t('finished'); runningText.style.display = 'block'; } catch (e) {}
+                        try { showError(t('finished')); } catch (e) {}
+                        try { if (tabBlinkEnabled) startEndBlinking(); } catch (e) {}
+                        try { if (blinkEnabled) document.getElementById('timerContainer').classList.add('blink-red'); } catch (e) {}
+                    }
+                }
+            } catch (e) {}
+    </script>
+</body>
+</html>
