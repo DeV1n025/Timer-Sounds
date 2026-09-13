@@ -1,0 +1,3125 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stoppuhr</title>
+    <link href="https://fonts.cdnfonts.com/css/digital-7-mono" rel="stylesheet">
+    <link id="favicon" rel="icon" type="image/png" href="">
+    <style>
+        * {
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            gap: 15px;
+        }
+        :root {
+            --ui-scale: 1; /* set via settings with setUiScale(scale) */
+            --element-gap: calc(6px * var(--ui-scale));
+            --button-bg: #667eea;
+            --button-hover: #764ba2;
+            --button-bg-dark: #4a5a9e;
+            --button-hover-dark: #5a3a7a;
+            --control-height: calc(36px * var(--ui-scale));
+            --button-min-height: calc(42px * var(--ui-scale));
+        }
+        #timerContainer > * {
+            margin: var(--element-gap) 0 !important;
+        }
+        .toolbar-title,
+        .toolbar-title *,
+        .help-dialog-body,
+        .help-dialog-body *,
+        .help-dialog,
+        .help-dialog *,
+        .music-hint,
+        .music-hint *,
+        .error-message,
+        .error-message *,
+        .lap-item,
+        .lap-item *,
+        #lapsList,
+        #lapsList *,
+        #lapsTitle,
+        #lapsEmpty {
+            -webkit-user-select: text;
+            user-select: text;
+            -webkit-touch-callout: default;
+        }
+        .container {
+            text-align: center;
+            position: relative;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            position: relative;
+            width: 450px;
+            box-sizing: border-box;
+        }
+        #inputTitle {
+            font-size: calc(20px * var(--ui-scale));
+            font-weight: 700;
+            margin: 0 0 var(--element-gap) 0;
+            cursor: text;
+            color: #556799;
+            width: 100%;
+            text-align: center;
+            padding: 8px 6px;
+        }
+        #inputTitleEdit {
+            height: calc(var(--control-height) + 2px * var(--ui-scale));
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0 10px;
+            margin-bottom: calc(8px * var(--ui-scale));
+            font-size: calc(15px * var(--ui-scale));
+            line-height: var(--control-height);
+        }
+        .title-edit-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .title-edit-row input {
+            flex: 1 1 auto;
+            height: var(--control-height);
+            padding: 0 10px;
+            box-sizing: border-box;
+            line-height: var(--control-height);
+            display: inline-flex;
+            align-items: center;
+            font-size: calc(14px * var(--ui-scale));
+        }
+        #inputTitleSaveBtn {
+            height: var(--control-height);
+            min-width: 40px;
+            padding: 0 8px;
+            border-radius: 5px;
+            background: #667eea;
+            color: white;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #inputTitleSaveBtn {
+            box-sizing: border-box;
+            padding: 0 calc(10px * var(--ui-scale));
+            line-height: var(--control-height);
+            font-size: calc(14px * var(--ui-scale));
+            height: var(--control-height);
+            min-height: var(--control-height);
+            vertical-align: middle;
+            align-self: center;
+        }
+        #inputTitleSaveBtn:hover {
+            background: #764ba2;
+        }
+        body.dark-mode #inputTitleSaveBtn:hover {
+            background: var(--button-hover-dark);
+        }
+        body.dark-mode #inputTitleSaveBtn {
+            background: var(--button-bg-dark);
+        }
+        #inputTitleSaveBtn:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(118,75,162,0.22);
+        }
+        /* Force exact alignment with input field */
+        .title-edit-row > #inputTitleSaveBtn {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            height: var(--control-height) !important;
+            line-height: var(--control-height) !important;
+            padding: 0 calc(10px * var(--ui-scale)) !important;
+            box-sizing: border-box !important;
+            margin: 0 !important;
+            transform: none !important;
+        }
+        #inputContainer {
+            margin-top: 0;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--element-gap);
+        }
+        #timerContainer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: auto;
+            min-width: 450px;
+            max-width: calc(100vw - 40px);
+            z-index: 1;
+            margin-top: 0;
+        }
+        .toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background: #d0d0d0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 2147483647;
+        }
+        .toolbar-title {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            font-family: Arial, sans-serif;
+            white-space: nowrap;
+            line-height: 1.1;
+            cursor: pointer;
+        }
+        body.dark-mode .toolbar-title {
+            color: #e0e0e0;
+        }
+        body.dark-mode .toolbar {
+            background: #1e1e2f;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
+        }
+
+        .darkmode-btn {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 0;
+            margin: 0;
+            width: 40px;
+            height: 36px;
+            font-size: 18px;
+            line-height: 1;
+            background: #d0d0d0;
+            color: #333;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            cursor: pointer;
+            opacity: 1;
+            transition: background 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .darkmode-btn:hover {
+            background: #b8b8b8;
+        }
+        body.dark-mode .darkmode-btn {
+            background: #1e1e2f;
+            color: #e0e0e0;
+            border: 2px solid #4a5a9e;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+        body.dark-mode .darkmode-btn:hover {
+            background: #2a2a3f;
+        }
+        .settings-toggle-btn {
+            position: absolute;
+            right: 70px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 0;
+            margin: 0;
+            width: 40px;
+            height: 36px;
+            font-size: 18px;
+            line-height: 1;
+            background: #d0d0d0;
+            color: #333;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            cursor: pointer;
+            opacity: 1;
+            transition: background 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .settings-toggle-btn:hover {
+            background: #b8b8b8;
+        }
+        .help-btn {
+            position: absolute;
+            right: 125px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 0;
+            margin: 0;
+            width: 40px;
+            height: 36px;
+            font-size: 18px;
+            line-height: 1;
+            background: #d0d0d0;
+            color: #333;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            cursor: pointer;
+            opacity: 1;
+            transition: background 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-style: italic;
+            font-weight: bold;
+        }
+        .help-btn:hover {
+            background: #b8b8b8;
+        }
+        #helpBtn {
+            right: 180px;
+        }
+        #languageToggleBtn {
+            right: 125px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+        body.dark-mode .help-btn {
+            background: #1e1e2f;
+            color: #e0e0e0;
+            border: 2px solid #4a5a9e;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+        body.dark-mode .help-btn:hover {
+            background: #2a2a3f;
+        }
+        .help-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 2147483647;
+            box-sizing: border-box;
+        }
+        .help-overlay.visible {
+            display: flex;
+        }
+        .help-dialog {
+            width: min(680px, 100%);
+            max-height: min(82vh, 760px);
+            overflow: auto;
+            background: #ffffff;
+            color: #222;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(102, 126, 234, 0.35);
+            padding: 20px 20px 18px;
+            box-sizing: border-box;
+        }
+        body.dark-mode .help-dialog {
+            background: #1e1e2f;
+            color: #e8e8f0;
+            border-color: rgba(128, 146, 234, 0.45);
+        }
+        .help-dialog-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+        .help-dialog-title {
+            margin: 0;
+            font-size: clamp(20px, 4vw, 28px);
+            line-height: 1.15;
+        }
+        .help-dialog-close {
+            width: 36px;
+            height: 36px;
+            flex: 0 0 36px;
+            border-radius: 50%;
+            border: 1px solid rgba(102, 126, 234, 0.45);
+            background: #eef1ff;
+            color: #334;
+            font-size: 22px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin: 0;
+        }
+        .help-dialog-close:hover {
+            background: #dfe5ff;
+        }
+        body.dark-mode .help-dialog-close {
+            background: #2a2a3f;
+            color: #e8e8f0;
+            border-color: rgba(128, 146, 234, 0.55);
+        }
+        body.dark-mode .help-dialog-close:hover {
+            background: #353553;
+        }
+        .help-dialog-body {
+            display: grid;
+            gap: 14px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+        .help-dialog-body h3 {
+            margin: 0 0 6px 0;
+            font-size: 17px;
+        }
+        .help-dialog-body p,
+        .help-dialog-body ul {
+            margin: 0;
+        }
+        .help-dialog-body ul {
+            padding-left: 20px;
+        }
+        .help-dialog-body li + li {
+            margin-top: 4px;
+        }
+        body.dark-mode .settings-toggle-btn {
+            background: #1e1e2f;
+            color: #e0e0e0;
+            border: 2px solid #4a5a9e;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+        body.dark-mode .settings-toggle-btn:hover {
+            background: #2a2a3f;
+        }
+        .toolbar .settings-toggle-btn,
+        .toolbar .help-btn,
+        .toolbar .darkmode-btn {
+            width: 34px !important;
+            height: 32px !important;
+            min-height: 32px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .toolbar-nav {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            gap: 6px;
+            max-width: calc(100vw - 220px);
+            z-index: 6;
+        }
+        .toolbar-nav-btn {
+            margin: 0;
+            padding: 6px 10px;
+            min-height: 32px;
+            font-size: 13px;
+            line-height: 1;
+            border: 1px solid #8f8f8f;
+            border-radius: 6px;
+            background: #ececec;
+            color: #333;
+            white-space: nowrap;
+        }
+        .toolbar-nav-btn:hover {
+            background: #d8d8d8;
+        }
+        .toolbar-nav-btn.active {
+            background: #667eea;
+            color: #fff;
+            border-color: #4f64c8;
+            font-weight: bold;
+        }
+        body.dark-mode .toolbar-nav-btn {
+            background: #2a2a3f;
+            color: #dcdcf0;
+            border-color: #4a5a9e;
+        }
+        body.dark-mode .toolbar-nav-btn:hover {
+            background: #353553;
+        }
+        body.dark-mode .toolbar-nav-btn.active {
+            background: #667eea;
+            color: #fff;
+            border-color: #8092ea;
+        }
+        .display {
+            display: inline-block;
+            font-size: 150px;
+            font-weight: bolder;
+            color: #333;
+            margin: 15px 0;
+            letter-spacing: -2px;
+            font-family: 'Digital-7 Mono', sans-serif;
+        }
+        .analog-display {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            margin: 8px 0 14px;
+            color: #333;
+        }
+        #timerContainer.analog-mode .display {
+            display: none;
+        }
+        #timerContainer.analog-mode .analog-display {
+            display: flex;
+        }
+        .analog-clock-face {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            border: 3px solid currentColor;
+            background: transparent;
+            box-shadow: none;
+        }
+        .analog-ticks {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .analog-ticks-minor {
+            background: repeating-conic-gradient(from -90deg, currentColor 0deg 0.55deg, transparent 0.55deg 6deg);
+            -webkit-mask: radial-gradient(circle, transparent 66%, #000 66%, #000 74%, transparent 74%);
+            mask: radial-gradient(circle, transparent 66%, #000 66%, #000 74%, transparent 74%);
+            opacity: 0.55;
+            z-index: 1;
+        }
+        .analog-ticks-major {
+            background: repeating-conic-gradient(from -90deg, currentColor 0deg 1.3deg, transparent 1.3deg 30deg);
+            -webkit-mask: radial-gradient(circle, transparent 63%, #000 63%, #000 74%, transparent 74%);
+            mask: radial-gradient(circle, transparent 63%, #000 63%, #000 74%, transparent 74%);
+            z-index: 1;
+        }
+        .analog-numbers {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 2;
+        }
+        .analog-number {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            font-family: Arial, sans-serif;
+            font-size: var(--analog-number-size, 13px);
+            font-weight: 600;
+            line-height: 1;
+            color: currentColor;
+        }
+        .analog-hand {
+            position: absolute;
+            left: 50%;
+            bottom: 50%;
+            transform-origin: 50% 100%;
+            transform: translateX(-50%) rotate(0deg);
+            border-radius: 999px;
+            z-index: 3;
+        }
+        .analog-hour {
+            width: var(--analog-hour-width, 10px);
+            height: 23%;
+            background: currentColor;
+            border: var(--analog-hand-border, 2px) solid #000;
+            box-sizing: border-box;
+        }
+        .analog-minute {
+            width: var(--analog-minute-width, 7px);
+            height: 34%;
+            background: currentColor;
+            border: var(--analog-hand-border, 2px) solid #000;
+            box-sizing: border-box;
+        }
+        .analog-second {
+            width: var(--analog-second-width, 2px);
+            height: 45%;
+            background: #d00000;
+        }
+        .analog-center {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            transform: translate(-50%, -50%);
+            z-index: 4;
+        }
+        .btn-row {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+        }
+        input {
+            width: 85px;
+            padding: 8px;
+            font-size: 14px;
+            margin: 8px;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            text-align: center;
+        }
+        button {
+            padding: 10px 8px;
+            margin: 8px;
+            font-size: 14px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            text-align: center;
+        }
+        button:hover {
+            background: #764ba2;
+        }
+        @keyframes blinkRed {
+            0%, 100% { background-color: white; }
+            50% { background-color: #ff9999; }
+        }
+        @keyframes blinkRedDark {
+            0%, 100% { background-color: #2a1e1e; }
+            50% { background-color: #833d3d; }
+        }
+        .blink-red {
+            animation: blinkRed 2s infinite;
+        }
+        body.dark-mode .blink-red {
+            animation: blinkRedDark 2s infinite;
+        }
+        .sound-panel {
+            background: #d0d0d0;
+            padding: 10px;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 190px;
+            position: fixed;
+            top: 75px;
+            right: 20px;
+            bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+            z-index: 10;
+            overflow-y: auto;
+            max-height: none;
+        }
+        /* Do not scale settings panel contents with global UI scale */
+        .sound-panel {
+            --ui-scale: 1 !important;
+        }
+        /* Lock spacing-related variables and common paddings/margins inside settings */
+        .sound-panel {
+            --element-gap: 6px !important;
+            --control-height: 36px !important;
+            --button-min-height: 42px !important;
+            padding: 10px !important;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+            gap: 6px !important;
+        }
+        .sound-panel .panel-header { padding: 5px !important; }
+        .sound-panel .panel-header h2 { font-size: 18px !important; }
+        .sound-panel .collapsible { margin-bottom: 5px !important; }
+        .sound-panel .collapsible-header { padding: 8px !important; margin-bottom: 5px !important; }
+        .sound-panel .collapsible-content { padding-left: 5px !important; }
+        .sound-panel .btn-row { gap: 8px !important; }
+        .sound-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sound-panel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sound-panel::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        body.dark-mode .sound-panel::-webkit-scrollbar-thumb {
+            background: #555;
+        }
+        .sound-panel h2 {
+            margin-top: 0;
+            font-size: 18px;
+        }
+        .sound-panel button {
+            width: 100%;
+            margin: 3px 0;
+        }
+        .sound-panel select {
+            width: 100%;
+            padding: 6px;
+            margin: 3px 0;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+        }
+        #finishedButtons button {
+            padding: 15px 20px;
+            font-size: 18px;
+        }
+        button.active-start {
+            background: #28a745;
+        }
+        button.active-pause {
+            background: #ffc107;
+            color: #333;
+        }
+        .version-badge {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            font-size: 10px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            opacity: 0.5;
+            z-index: 10;
+            color: #e0e0e0;
+            margin-left: 20px;
+        }
+        body.dark-mode .version-badge {
+            color: #e0e0e0;
+        }
+        .clock {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            z-index: 10;
+        }
+        .panel-header {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px;
+            user-select: none;
+        }
+        .panel-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+        .panel-content {
+            /* Let panel content size to its content; scrolling is handled by .sound-panel */
+            overflow: visible;
+            transition: none;
+            max-height: none;
+            opacity: 1;
+        }
+        .panel-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+        .collapsible {
+            margin-bottom: 5px;
+        }
+        .collapsible-header {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            user-select: none;
+        }
+        .collapsible-header h3 {
+            margin: 0;
+            font-size: 14px;
+            color: #333;
+        }
+        .collapsible-content {
+            /* Allow content-driven height; collapse will hide via the .collapsed class */
+            overflow: visible;
+            transition: opacity 0.2s ease-out;
+            max-height: none;
+            opacity: 1;
+            padding-left: 5px;
+        }
+        .collapsible-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+        #lapsList {
+            height: 180px;
+            overflow-y: auto;
+            border: 1px solid #d9d9d9;
+            border-radius: 8px;
+            padding: 6px;
+            box-sizing: border-box;
+            width: 100%;
+            text-align: left;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            background: #fafafa;
+        }
+        #lapsList .lap-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 8px;
+            border-bottom: 1px solid #e6e6e6;
+        }
+        #lapsList .lap-item.lap-fastest {
+            color: #1f8f2b;
+            font-weight: bold;
+        }
+        #lapsList .lap-item.lap-slowest {
+            color: #cc2f2f;
+            font-weight: bold;
+        }
+        #lapsList .lap-item:last-child {
+            border-bottom: none;
+        }
+        #lapsEmpty {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .nested .collapsible-header {
+            padding: 6px 8px;
+            background: #eef0f3;
+        }
+        .nested .collapsible-header h3 {
+            font-size: 13px;
+        }
+        .arrow {
+            transition: transform 0.3s;
+            font-size: 12px;
+        }
+        .arrow.collapsed {
+            transform: rotate(-90deg);
+        }
+        body.dark-mode {
+            background: linear-gradient(135deg, #0c1120 0%, #170f20 100%);
+            color: #e0e0e0;
+        }
+        body.dark-mode .container {
+            background: #1e1e2f;
+            color: #e0e0e0;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+        }
+        body.dark-mode .display {
+            color: #e0e0e0;
+        }
+        body.dark-mode h1, body.dark-mode h2, body.dark-mode h3 {
+            color: #e0e0e0;
+        }
+        body.dark-mode input {
+            background: #2a2a3f;
+            color: #e0e0e0;
+            border-color: #4a5a9e;
+        }
+        body.dark-mode button {
+            background: #4a5a9e;
+        }
+        body.dark-mode button:hover {
+            background: #5a3a7a;
+        }
+        body.dark-mode .sound-panel {
+            background: #1e1e2f;
+            color: #e0e0e0;
+        }
+        body.dark-mode .sound-panel select {
+            border-color: #4a5a9e;
+            background: #2a2a3f;
+            color: #e0e0e0;
+        }
+        body.dark-mode .clock {
+            background: #1e1e2f;
+            color: #e0e0e0;
+        }
+        body.dark-mode .collapsible-header {
+            background: #2a2a3f;
+        }
+        body.dark-mode .collapsible-header h3 {
+            color: #e0e0e0;
+        }
+        body.dark-mode #lapsList {
+            background: #2a2a3f;
+            border-color: #424262;
+            color: #e0e0e0;
+        }
+        body.dark-mode #lapsList .lap-item {
+            border-bottom-color: #424262;
+        }
+        body.dark-mode #lapsList .lap-item.lap-fastest {
+            color: #7fe08d;
+        }
+        body.dark-mode #lapsList .lap-item.lap-slowest {
+            color: #ff8e8e;
+        }
+        body.dark-mode #lapsEmpty {
+            color: #b9b9c7;
+        }
+        body.dark-mode button.active-start {
+            background: #28a745;
+        }
+        body.dark-mode button.active-pause {
+            background: #ffc107;
+            color: #333;
+        }
+        body.dark-mode .setting-label {
+            color: #e0e0e0 !important;
+        }
+        
+        .error-message {
+            position: fixed;
+            top: 70px;
+            left: 20px;
+            background: white;
+            color: #d32f2f;
+            border: 2px solid #d32f2f;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 20;
+            opacity: 1;
+            transition: opacity 2s ease-out;
+            min-width: 200px;
+            max-width: 300px;
+        }
+        body.dark-mode .error-message {
+            background: #2a1e1e;
+            color: #ff5252;
+            border-color: #ff5252;
+            box-shadow: 0 4px 12px rgba(255, 82, 82, 0.4);
+        }
+        .error-message button {
+            margin: 0 0 0 10px;
+            padding: 4px 12px;
+            font-size: 12px;
+            margin-top: 10px;
+            background: transparent;
+            color: #4caf50;
+            border: 2px solid #4caf50;
+            border-radius: 4px;
+            cursor: pointer;
+            float: right;
+        }
+        .error-message button:hover {
+            background: rgba(76, 175, 80, 0.1);
+            color: #45a049;
+            border-color: #45a049;
+        }
+        .error-message button:hover {
+            background: #45a049;
+        }
+        body.dark-mode .error-message button {
+            color: #81c784;
+            border-color: #81c784;
+            background: rgba(129, 199, 132, 0.1);
+        }
+        body.dark-mode .error-message button:hover {
+            color: #66bb6a;
+            border-color: #66bb6a;
+            background: rgba(102, 187, 106, 0.2);
+        }
+        #errorText {
+            display: inline-block;
+        }
+
+        .music-hint {
+            position: fixed;
+            left: 50%;
+            bottom: 12px;
+            --hint-base-transform: translateX(-50%);
+            transform: var(--hint-base-transform) scale(1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            max-width: min(92vw, 420px);
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(48, 62, 122, 0.35);
+            background: rgba(255, 255, 255, 0.78);
+            color: #2f3f86;
+            font-size: 12px;
+            font-family: Arial, sans-serif;
+            font-weight: 600;
+            line-height: 1.25;
+            text-align: center;
+            box-shadow: 0 5px 14px rgba(0, 0, 0, 0.18);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 22;
+            transition: width 0.25s ease, height 0.25s ease, padding 0.25s ease, opacity 0.25s ease, border-color 0.25s ease, background 0.25s ease, transform 0.25s ease;
+            cursor: default;
+        }
+        .music-hint-icon {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            line-height: 1;
+            opacity: 1;
+        }
+        .music-hint.expanding {
+            animation: hintExpand 0.28s ease;
+        }
+        .music-hint.collapsing {
+            animation: hintCollapse 0.28s ease;
+        }
+        .music-hint.collapsed {
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            background: rgba(255, 255, 255, 0.42);
+            border-color: rgba(48, 62, 122, 0.28);
+            opacity: 0.74;
+            cursor: pointer;
+        }
+        .music-hint.collapsed .music-hint-text {
+            display: none;
+        }
+        .music-hint.collapsed .music-hint-icon {
+            display: inline-flex;
+            opacity: 0.58;
+        }
+        body.dark-mode .music-hint {
+            background: rgba(30, 30, 47, 0.82);
+            color: #dbe3ff;
+            border-color: rgba(144, 163, 240, 0.45);
+        }
+        body.dark-mode .music-hint.collapsed {
+            background: rgba(30, 30, 47, 0.5);
+            border-color: rgba(144, 163, 240, 0.35);
+            opacity: 0.68;
+        }
+
+        @keyframes hintExpand {
+            from {
+                transform: var(--hint-base-transform) scale(0.9);
+                opacity: 0.58;
+            }
+            to {
+                transform: var(--hint-base-transform) scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes hintCollapse {
+            from {
+                transform: var(--hint-base-transform) scale(1);
+                opacity: 1;
+            }
+            to {
+                transform: var(--hint-base-transform) scale(0.9);
+                opacity: 0.68;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                height: auto;
+                min-height: 100dvh;
+                overflow-y: auto;
+                overflow-x: hidden;
+                padding: 12px;
+                padding-top: 70px;
+                align-items: center;
+            }
+
+            .toolbar {
+                height: 56px;
+            }
+
+            .toolbar-title {
+                left: 44px;
+                font-size: 14px;
+                line-height: 1.15;
+                max-width: calc(100vw - 130px);
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+
+            .toolbar-nav {
+                max-width: calc(100vw - 180px);
+                gap: 4px;
+            }
+
+            .toolbar-nav-btn {
+                font-size: 11px;
+                padding: 5px 8px;
+                min-height: 30px;
+            }
+
+            .help-btn {
+                right: 100px;
+                width: 34px;
+                height: 32px;
+            }
+            #helpBtn {
+                right: 148px;
+            }
+            #languageToggleBtn {
+                right: 102px;
+                font-size: 10px;
+            }
+            #helpBtn {
+                right: 148px;
+            }
+            #languageToggleBtn {
+                right: 102px;
+                font-size: 10px;
+            }
+
+            .settings-toggle-btn {
+                right: 56px;
+                width: 34px;
+                height: 32px;
+            }
+
+            .darkmode-btn {
+                right: 10px;
+                width: 34px;
+                height: 32px;
+            }
+
+            .container {
+                width: calc(100vw - 24px);
+                max-width: 460px;
+                min-width: 0;
+                padding: 16px;
+            }
+
+            #timerContainer {
+                position: static;
+                top: auto;
+                left: auto;
+                transform: none;
+                width: calc(100vw - 24px);
+                max-width: 460px;
+                min-width: 0;
+                margin: 8px auto 90px auto;
+            }
+
+            .display {
+                font-size: clamp(62px, 19vw, 120px);
+                letter-spacing: -1px;
+                margin: 10px 0;
+                width: 100%;
+                max-width: 100%;
+                white-space: nowrap;
+                overflow: hidden;
+            }
+
+            .btn-row {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+
+            #timerContainer .btn-row button {
+                flex: 1 1 calc(50% - 8px);
+                min-width: 110px;
+                margin: 4px;
+            }
+
+            #lapsList {
+                height: clamp(100px, 22vh, 180px);
+            }
+
+            .sound-panel {
+                top: 64px;
+                right: 8px;
+                left: 8px;
+                width: auto;
+                bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+                max-height: none;
+            }
+
+            .clock {
+                right: 10px;
+                bottom: 10px;
+                font-size: 15px;
+                padding: 8px 10px;
+            }
+
+            .version-badge {
+                left: 10px;
+                bottom: 10px;
+                margin-left: 0;
+            }
+
+            .error-message {
+                left: 10px;
+                right: 10px;
+                max-width: none;
+                min-width: 0;
+            }
+            .music-hint {
+                bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+            }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <div class="toolbar">
+        <div id="toolbarTitle" class="toolbar-title" onclick="location.reload()" title="Seite neu laden" role="button" tabindex="0" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); location.reload(); }">Stoppuhr mit<br>Hintergrundmusik</div>
+        <div class="toolbar-nav">
+            <button id="navTimerBtn" class="toolbar-nav-btn" type="button" onclick="location.href='Timer mit Hintergrundmusik V2 2.html'">Timer</button>
+            <button id="navStopwatchBtn" class="toolbar-nav-btn active" type="button" onclick="location.href='Stoppuhr mit Hintergrundmusik V2 2.html'">Stoppuhr</button>
+            <button id="navClockBtn" class="toolbar-nav-btn" type="button" onclick="location.href='Uhr mit Hintergrundmusik V2 2.html'">Uhr</button>
+        </div>
+        <button id="helpBtn" class="help-btn" type="button" onclick="showProgramHelp()" title="Anleitung anzeigen">i</button>
+        <button id="languageToggleBtn" class="settings-toggle-btn" type="button" onclick="toggleLanguage()" title="Sprache wechseln">DE</button>
+        <button id="settingsToggleBtn" class="settings-toggle-btn" onclick="toggleSettingsPanel()" title="Einstellungen ein-/ausblenden"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
+        <button id="darkModeToggleBtn" class="darkmode-btn" onclick="toggleDarkMode()" title="Darkmode umschalten"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></button>
+
+    </div>
+    <div class="container" id="timerContainer">
+        <div id="inputContainer" style="width:100%; box-sizing:border-box; margin-bottom:6px;">
+            <div id="inputTitle" tabindex="0" onclick="enableTitleEdit()" onkeydown="if(event.key==='Enter'){ enableTitleEdit(); }">Stoppuhr</div>
+            <div class="title-edit-row" style="display:none; width:100%; box-sizing:border-box; gap:6px; align-items:center;">
+                <input type="text" id="inputTitleEdit" placeholder="Titel eingeben" onblur="saveTitleEdit()" onkeydown="handleTitleKey(event)">
+                <button id="inputTitleSaveBtn" onclick="saveTitleEdit()" aria-label="Speichern" style="display:inline-flex; align-items:center; justify-content:center; height:var(--control-height); line-height:var(--control-height); box-sizing:border-box; padding:0 calc(10px * var(--ui-scale));">✔</button>
+            </div>
+        
+        <div class="display" id="display">00:00:00.00</div>
+        <div class="analog-display" id="analogDisplay" aria-hidden="true">
+            <div class="analog-clock-face">
+                <div class="analog-hand analog-hour" id="analogHourHand"></div>
+                <div class="analog-hand analog-minute" id="analogMinuteHand"></div>
+                <div class="analog-hand analog-second" id="analogSecondHand"></div>
+                <div class="analog-center"></div>
+            </div>
+        </div>
+        <div id="runningText" style="display: none; font-size: 18px; margin-top: 5px;">Zeit läuft</div>
+        <div class="btn-row">
+            <button id="startPauseBtn" onclick="toggleTimer()">Start</button>
+            <button id="lapBtn" onclick="lapStopwatch()">Runde</button>
+            <button id="clearBtn" onclick="resetStopwatch()">Löschen</button>
+        </div>
+        <div style="margin-top: 14px; width: 100%;">
+            <h3 id="lapsTitle" style="margin: 0 0 10px 0;">Runden</h3>
+            <div id="lapsList">
+                <div id="lapsEmpty">Noch keine Runde.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sound-panel" style="display: none;">
+        <div class="panel-header" onclick="togglePanel()">
+            <h2 id="panelTitle">Einstellungen</h2>
+            <span class="arrow" id="panelArrow">▼</span>
+        </div>
+        <div class="panel-content" id="panelContent">
+            <div class="collapsible">
+                <div class="collapsible-header" onclick="toggleSection('general')">
+                    <h3 id="generalSettingsTitle">Allgemeine Einstellungen</h3>
+                    <span class="arrow" id="arrow-general">▼</span>
+                </div>
+                <div class="collapsible-content" id="content-general">
+                    <div class="setting-label" id="sizeSettingLabel" style="font-family: Arial, sans-serif; font-size: 14px; margin-bottom: 2px;">Textgrösse</div>
+                    <div style="display: flex; align-items: center; margin: 1px 0;">
+                        <span onclick="resetTimerFontSize()" title="Standardgrösse" style="cursor: pointer; user-select: none;">🔤</span>
+                        <input type="range" id="timerFontSize" min="50" max="300" value="150" onchange="setTimerFontSize()" style="flex: 1; margin-left: 5px;">
+                    </div>
+                    <button onclick="toggleDarkMode()" id="darkModeBtn" style="margin-bottom: 8px;">Darkmode: <span id="darkModeStatus">Ein</span></button>
+                    <button onclick="toggleAnalogMode()" id="analogModeBtn" style="margin-bottom: 8px;">Analoganzeige: <span id="analogModeStatus">Aus</span></button>
+                    <button onclick="toggleTitleVisibility()" id="titleToggleBtn" style="margin-bottom: 8px;">Titel anzeigen: <span id="titleToggleStatus">Ein</span></button>
+                    <button onclick="toggleTabBlink()" id="tabBlinkBtn" style="margin-bottom: 8px;">Anzeige im Tab: <span id="tabBlinkStatus">Ein</span></button>
+                </div>
+            </div>
+            <div class="collapsible">
+                <div class="collapsible-header" onclick="toggleSection('sound')">
+                    <h3 id="soundSettingsTitle">Sound-Einstellungen</h3>
+                    <span class="arrow" id="arrow-sound">▼</span>
+                </div>
+                <div class="collapsible-content" id="content-sound">
+                    <button id="musicToggleBtn" onclick="toggleMusic()">Hintergrundmusik: <span id="musicStatus">Aus</span></button>
+                    <select id="musicSound" onchange="changeMusicSound()">
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Elevator Music.mp3">Elevator Music</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Chill Deep House Mix.mp3">Chill Deep House Mix</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Deep Focus Music.mp3">Deep Focus Music</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Elevator Music Jazz.mp3">Elevator Music Jazz</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Epic Music.mp3">Epic Music</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Kahoot Lobby theme song.mp3">Kahoot Lobby theme song</option>
+                        <option value="Kahoot Answer">Kahoot Answer</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Minecraft.mp3">Minecraft</option>
+                        <option value="Minecraft Album">Minecraft Album</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Party Mix Mashup.mp3">Party Mix Mashup</option>
+                        <option value="https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik/Super Mario.mp3">Super Mario</option>
+                        <option value="upload">Eigene Datei</option>
+                    </select>
+                    <input type="file" id="musicFile" accept="audio/*" style="display: none; margin: 3px 0;">
+                    <span id="musicFileName" style="font-size: 12px; color: #667eea;"></span>
+                    <div style="display: flex; align-items: center; margin: 1px 0;">
+                        <span id="musicMuteBtn" onclick="muteMusic()" title="Stumm" style="cursor: pointer; user-select: none;">🔊</span>
+                        <input type="range" id="musicVolume" min="0" max="1" step="0.1" value="0.75" onchange="setMusicVolume()" style="flex: 1; margin-left: 5px;">
+                    </div>
+                    <button id="previewMusicBtn" style="width: 100%; margin: 3px 0;" onclick="previewMusic()" disabled>Musik vorhören</button>
+                    <button id="musicAlwaysOnBtn" style="width: 100%; margin: 3px 0;" onclick="toggleMusicAlwaysOn()">Musik immer ein: <span id="musicAlwaysOnStatus">Aus</span></button>
+                </div>
+
+            </div>
+            <div class="collapsible">
+                <div class="collapsible-header" onclick="toggleSection('color')">
+                    <h3 id="colorSettingsTitle">Farb‑Einstellungen</h3>
+                    <span class="arrow" id="arrow-color">▼</span>
+                </div>
+                <div class="collapsible-content" id="content-color">
+                    <button onclick="toggleColorMenu()" id="timerColorBtn" style="margin-bottom: 8px;">Timer-Farbe</button>
+                    <div id="colorMenu" style="display: none; background: white; border: 1px solid #667eea; border-radius: 5px; padding: 10px; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: bold; font-size: 14px; color: #333;">Farbe wählen</span>
+                            <span onclick="toggleColorMenu()" style="cursor: pointer; font-size: 16px; color: #667eea; font-weight: bold;">OK</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 8px;">
+                            <div onclick="pickColor('#333333')" style="width: 100%; height: 25px; background: #333333; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#ff0000')" style="width: 100%; height: 25px; background: #ff0000; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#00ff00')" style="width: 100%; height: 25px; background: #00ff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#0000ff')" style="width: 100%; height: 25px; background: #0000ff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#ffa500')" style="width: 100%; height: 25px; background: #ffa500; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#800080')" style="width: 100%; height: 25px; background: #800080; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#00ffff')" style="width: 100%; height: 25px; background: #00ffff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#ff69b4')" style="width: 100%; height: 25px; background: #ff69b4; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#ffff00')" style="width: 100%; height: 25px; background: #ffff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#a52a2a')" style="width: 100%; height: 25px; background: #a52a2a; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#808080')" style="width: 100%; height: 25px; background: #808080; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickColor('#ffffff')" style="width: 100%; height: 25px; background: #ffffff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <input type="color" id="timerColor" value="#333333" onchange="pickColor(this.value)" style="width: 30px; height: 25px; border: none; cursor: pointer; padding: 0;">
+                            <span style="font-size: 12px; color: #666;">Eigene Farbe</span>
+                        </div>
+                    </div>
+                    <button onclick="toggleContainerColorMenu()" id="containerColorBtn" style="margin-bottom: 8px;">Container-Farbe</button>
+                    <div id="containerColorMenu" style="display: none; background: white; border: 1px solid #667eea; border-radius: 5px; padding: 10px; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: bold; font-size: 14px; color: #333;">Container-Farbe wählen</span>
+                            <span onclick="toggleContainerColorMenu()" style="cursor: pointer; font-size: 16px; color: #667eea; font-weight: bold;">OK</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 8px;">
+                            <div onclick="pickContainerColor('#ffffff')" style="width: 100%; height: 25px; background: #ffffff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#f0f0f0')" style="width: 100%; height: 25px; background: #f0f0f0; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#333333')" style="width: 100%; height: 25px; background: #333333; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#1e1e2f')" style="width: 100%; height: 25px; background: #1e1e2f; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#ff0000')" style="width: 100%; height: 25px; background: #ff0000; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#00ff00')" style="width: 100%; height: 25px; background: #00ff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#0000ff')" style="width: 100%; height: 25px; background: #0000ff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#ffa500')" style="width: 100%; height: 25px; background: #ffa500; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#800080')" style="width: 100%; height: 25px; background: #800080; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#00ffff')" style="width: 100%; height: 25px; background: #00ffff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#ff69b4')" style="width: 100%; height: 25px; background: #ff69b4; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickContainerColor('#ffff00')" style="width: 100%; height: 25px; background: #ffff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <input type="color" id="containerColor" value="#ffffff" onchange="pickContainerColor(this.value)" style="width: 30px; height: 25px; border: none; cursor: pointer; padding: 0;">
+                            <span style="font-size: 12px; color: #666;">Eigene Farbe</span>
+                        </div>
+                    </div>
+                    <button onclick="toggleLapsContainerColorMenu()" id="lapsContainerColorBtn" style="margin-bottom: 8px;">Runden-Container-Farbe</button>
+                    <div id="lapsContainerColorMenu" style="display: none; background: white; border: 1px solid #667eea; border-radius: 5px; padding: 10px; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: bold; font-size: 14px; color: #333;">Runden-Container-Farbe wählen</span>
+                            <span onclick="toggleLapsContainerColorMenu()" style="cursor: pointer; font-size: 16px; color: #667eea; font-weight: bold;">OK</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 8px;">
+                            <div onclick="pickLapsContainerColor('#fafafa')" style="width: 100%; height: 25px; background: #fafafa; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickLapsContainerColor('#ffffff')" style="width: 100%; height: 25px; background: #ffffff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickLapsContainerColor('#f0f0f0')" style="width: 100%; height: 25px; background: #f0f0f0; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickLapsContainerColor('#2a2a3f')" style="width: 100%; height: 25px; background: #2a2a3f; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickLapsContainerColor('#333333')" style="width: 100%; height: 25px; background: #333333; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickLapsContainerColor('#ff0000')" style="width: 100%; height: 25px; background: #ff0000; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickLapsContainerColor('#00ff00')" style="width: 100%; height: 25px; background: #00ff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickLapsContainerColor('#0000ff')" style="width: 100%; height: 25px; background: #0000ff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickLapsContainerColor('#ffa500')" style="width: 100%; height: 25px; background: #ffa500; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickLapsContainerColor('#800080')" style="width: 100%; height: 25px; background: #800080; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickLapsContainerColor('#00ffff')" style="width: 100%; height: 25px; background: #00ffff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickLapsContainerColor('#ff69b4')" style="width: 100%; height: 25px; background: #ff69b4; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <input type="color" id="lapsContainerColor" value="#fafafa" onchange="pickLapsContainerColor(this.value)" style="width: 30px; height: 25px; border: none; cursor: pointer; padding: 0;">
+                            <span style="font-size: 12px; color: #666;">Eigene Farbe</span>
+                        </div>
+                    </div>
+                    <button onclick="toggleBgColorMenu()" id="bgColorBtn" style="margin-bottom: 8px;">Hintergrund-Farbe</button>
+                    <div id="bgColorMenu" style="display: none; background: white; border: 1px solid #667eea; border-radius: 5px; padding: 10px; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: bold; font-size: 14px; color: #333;">Hintergrund-Farbe wählen</span>
+                            <span onclick="toggleBgColorMenu()" style="cursor: pointer; font-size: 16px; color: #667eea; font-weight: bold;">OK</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 8px;">
+                            <div onclick="pickBgColor('#667eea')" style="width: 100%; height: 25px; background: #667eea; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#764ba2')" style="width: 100%; height: 25px; background: #764ba2; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#ff0000')" style="width: 100%; height: 25px; background: #ff0000; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#00ff00')" style="width: 100%; height: 25px; background: #00ff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#0000ff')" style="width: 100%; height: 25px; background: #0000ff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#ffa500')" style="width: 100%; height: 25px; background: #ffa500; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#800080')" style="width: 100%; height: 25px; background: #800080; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#00ffff')" style="width: 100%; height: 25px; background: #00ffff; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#ff69b4')" style="width: 100%; height: 25px; background: #ff69b4; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#ffff00')" style="width: 100%; height: 25px; background: #ffff00; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#333333')" style="width: 100%; height: 25px; background: #333333; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                            <div onclick="pickBgColor('#000000')" style="width: 100%; height: 25px; background: #000000; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;"></div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <input type="color" id="bgColor" value="#667eea" onchange="pickBgColor(this.value)" style="width: 30px; height: 25px; border: none; cursor: pointer; padding: 0;">
+                            <span style="font-size: 12px; color: #666;">Eigene Farbe</span>
+                        </div>
+                    </div>
+                    <button onclick="resetColors()" id="resetColorsBtn" style="margin-bottom: 8px;">Standardfarben wiederherstellen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<audio id="musicAudio" preload="auto"></audio>
+<div id="versionBadge" class="version-badge">V2.2</div>
+<div id="clock" class="clock">00:00:00</div>
+
+<div id="errorMessage" class="error-message" style="display: none;">
+    <span id="errorText">Sound-Datei nicht gefunden!</span>
+    <button id="understoodBtn" onclick="handleUnderstood()">Verstanden</button>
+</div>
+
+<div id="musicHint" class="music-hint" aria-live="polite" role="button" tabindex="0" title="Info anzeigen">
+    <span id="musicHintText" class="music-hint-text">Hintergrungmusik in den einstellungen einschelten.</span>
+    <span class="music-hint-icon" aria-hidden="true">i</span>
+</div>
+
+<div id="helpOverlay" class="help-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="helpTitle" onclick="if (event.target === this) hideProgramHelp()">
+    <div class="help-dialog">
+        <div class="help-dialog-header">
+            <h2 id="helpTitle" class="help-dialog-title">Stoppuhr mit Hintergrundmusik</h2>
+            <button type="button" class="help-dialog-close" onclick="hideProgramHelp()" aria-label="Hilfe schließen">&times;</button>
+        </div>
+        <div id="helpBody" class="help-dialog-body"></div>
+    </div>
+</div>
+
+    <script>
+        // Ensure settings panel has bottom spacer so last control can be scrolled past
+        (function ensurePanelSpacer(){
+            function insertSpacer(){
+                try{
+                    const panel = document.querySelector('.sound-panel .panel-content');
+                    if (!panel) return;
+                    if (!panel.querySelector('.panel-bottom-spacer')){
+                        const spacer = document.createElement('div');
+                        spacer.className = 'panel-bottom-spacer';
+                        spacer.style.height = '8px';
+                        spacer.style.width = '100%';
+                        panel.appendChild(spacer);
+                    }
+                }catch(e){}
+            }
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', insertSpacer); else insertSpacer();
+        })();
+        // Ensure fixed UI elements are appended to body (prevent being positioned relative to transformed container)
+        try {
+            document.addEventListener('DOMContentLoaded', function() {
+                // Move fixed UI elements to document.body to avoid transform stacking contexts
+                ['musicAudio','versionBadge','clock','errorMessage','musicHint','helpOverlay','sound-panel'].forEach(function(id) {
+                    try {
+                        var el = document.getElementById(id) || document.querySelector('.' + id);
+                        if (el && el.parentElement && el.parentElement !== document.body) {
+                            document.body.appendChild(el);
+                        }
+                    } catch(e) {}
+                });
+            });
+        } catch (e) {}
+        let elapsedMilliseconds = 0;
+        let startTimestamp = null;
+        let interval = null;
+        let isRunning = false;
+        let musicEnabled = false;
+        let musicAlwaysOn = false;
+        // Show time in tab while running
+        let tabBlinkEnabled = true;
+        const BASE_TITLE = document.title || 'Stoppuhr';
+        let lapCounter = 0;
+    let lastLapMilliseconds = 0;
+const LAPS_KEY = 'stoppuhrLapsV1';
+let musicPreviewPlaying = false;
+        let musicPlaylist = [];
+        let currentTrackIndex = 0;
+let isMusicShuffle = false;
+    let isAnalogMode = false;
+        const LANGUAGE_KEY = 'appLanguage';
+        let currentLanguage = localStorage.getItem(LANGUAGE_KEY) === 'en' ? 'en' : 'de';
+        const LANG = {
+            de: {
+                toolbarTitle: 'Stoppuhr mit<br>Hintergrundmusik',
+                navTimer: 'Timer',
+                navStopwatch: 'Stoppuhr',
+                navClock: 'Uhr',
+                langTooltip: 'Sprache wechseln',
+                helpTooltip: 'Anleitung anzeigen',
+                settingsTooltip: 'Einstellungen ein-/ausblenden',
+                darkModeTooltip: 'Darkmode umschalten',
+                lightModeTooltip: 'Hellmodus umschalten',
+                on: 'Ein',
+                off: 'Aus',
+                start: 'Start',
+                pause: 'Pause',
+                resume: 'Weiter',
+                lap: 'Runde',
+                clear: 'Löschen',
+                running: 'Zeit läuft',
+                paused: 'Pausiert',
+                laps: 'Runden',
+                noLaps: 'Noch keine Runde.',
+                lapLabel: 'Runde',
+                settings: 'Einstellungen',
+                generalSettings: 'Allgemeine Einstellungen',
+                soundSettings: 'Sound-Einstellungen',
+                darkMode: 'Darkmode',
+                timerColor: 'Timer-Farbe',
+                containerColor: 'Container-Farbe',
+                lapsContainerColor: 'Runden-Container-Farbe',
+                backgroundColor: 'Hintergrund-Farbe',
+                resetColors: 'Standardfarben wiederherstellen',
+                analogDisplay: 'Analoganzeige',
+                textSize: 'Textgrösse',
+                backgroundMusic: 'Hintergrundmusik',
+                previewMusic: 'Musik vorhören',
+                stopPreview: '⏹ Musik stoppen',
+                musicAlwaysOn: 'Musik immer ein',
+                chooseColor: 'Farbe wählen',
+                customColor: 'Eigene Farbe',
+                containerColorMenuTitle: 'Container-Farbe wählen',
+                lapsContainerColorMenuTitle: 'Runden-Container-Farbe wählen',
+                backgroundColorMenuTitle: 'Hintergrund-Farbe wählen',
+                colorSettingsTitle: 'Farb‑Einstellungen',
+                showTitle: 'Titel anzeigen',
+                musicHintText: 'Hintergrungmusik in den einstellungen einschelten.',
+                helpTitle: 'So benutzt du das Programm',
+                helpUseTitle: 'So benutzt du das Programm',
+                helpUseItem1: 'Mit „Start“ die Zeitmessung beginnen.',
+                helpUseItem2: 'Mit „Pause“ anhalten und mit „Weiter“ fortsetzen.',
+                helpUseItem3: 'Mit „Runde“ Zwischenzeiten speichern.',
+                helpUseItem4: 'Mit „Löschen“ die Stoppuhr zurücksetzen.',
+                helpUseItem5: 'Über die Einstellungen Aussehen und Musik anpassen.',
+                helpFeaturesTitle: 'Funktionen',
+                helpFeaturesItem1: 'Rundenliste mit allen Zwischenzeiten.',
+                helpFeaturesItem2: 'Hervorhebung der schnellsten und langsamsten Runde.',
+                helpFeaturesItem3: 'Hintergrundmusik ein- oder ausschalten, vorhören und dauerhaft laufen lassen.',
+                helpFeaturesItem4: 'Farben, Schriftgröße, Darkmode und gespeicherte Einstellungen.',
+                helpBrowserTitle: 'Browser-Ton',
+                helpBrowserItem1: 'Für die Wiedergabe sind keine besonderen Browser-Rechte nötig.',
+                helpBrowserItem2: 'Der Browser muss Ton erlauben und darf den Tab nicht stumm schalten.',
+                helpBrowserItem3: 'Wenn der Browser Autoplay blockiert, starte die Musik einmal per Klick.',
+                stopwatchNotRunning: 'Stoppuhr läuft nicht.',
+                musicUnavailable: 'Hintergrundmusik nicht verfügbar',
+                previewBlocked: 'Musikvorhören ist blockiert, solange die Hintergrundmusik läuft.',
+                soundFileNotFound: 'Sound-Datei nicht gefunden!',
+                showInfo: 'Info anzeigen',
+                mute: 'Stumm',
+                previewLocked: '🔒 Musik läuft',
+                understood: 'Verstanden',
+                helpCloseAria: 'Hilfe schließen',
+                resetSizeTooltip: 'Standardgrösse',
+                showInputs: 'Eingaben einblenden',
+                hideInputs: 'Eingaben ausblenden'
+            },
+            en: {
+                toolbarTitle: 'Stopwatch with<br>Background Music',
+                navTimer: 'Timer',
+                navStopwatch: 'Stopwatch',
+                navClock: 'Clock',
+                langTooltip: 'Switch language',
+                helpTooltip: 'Show guide',
+                settingsTooltip: 'Show/hide settings',
+                darkModeTooltip: 'Toggle dark mode',
+                lightModeTooltip: 'Toggle light mode',
+                on: 'On',
+                off: 'Off',
+                start: 'Start',
+                pause: 'Pause',
+                resume: 'Continue',
+                lap: 'Lap',
+                clear: 'Clear',
+                running: 'Running',
+                paused: 'Paused',
+                laps: 'Laps',
+                noLaps: 'No laps yet.',
+                lapLabel: 'Lap',
+                settings: 'Settings',
+                generalSettings: 'General settings',
+                soundSettings: 'Sound settings',
+                darkMode: 'Dark mode',
+                timerColor: 'Timer color',
+                containerColor: 'Container color',
+                lapsContainerColor: 'Laps container color',
+                backgroundColor: 'Background color',
+                resetColors: 'Restore default colors',
+                analogDisplay: 'Analog display',
+                textSize: 'Text size',
+                backgroundMusic: 'Background music',
+                previewMusic: 'Preview music',
+                stopPreview: '⏹ Stop preview',
+                musicAlwaysOn: 'Music always on',
+                chooseColor: 'Choose color',
+                customColor: 'Custom color',
+                containerColorMenuTitle: 'Choose container color',
+                lapsContainerColorMenuTitle: 'Choose laps container color',
+                backgroundColorMenuTitle: 'Choose background color',
+                colorSettingsTitle: 'Color Settings',
+                showTitle: 'Show title',
+                musicHintText: 'Background music can be enabled in the settings.',
+                helpTitle: 'How to use this program',
+                helpUseTitle: 'How to use this program',
+                helpUseItem1: 'Start the stopwatch with “Start”.',
+                helpUseItem2: 'Pause it with “Pause” and continue with “Continue”.',
+                helpUseItem3: 'Save split times with “Lap”.',
+                helpUseItem4: 'Reset the stopwatch with “Clear”.',
+                helpUseItem5: 'Adjust appearance and music in the settings.',
+                helpFeaturesTitle: 'Features',
+                helpFeaturesItem1: 'A lap list with all split times.',
+                helpFeaturesItem2: 'Highlighting of the fastest and slowest lap.',
+                helpFeaturesItem3: 'Switch background music on or off, preview it and let it run continuously.',
+                helpFeaturesItem4: 'Colors, font size, dark mode and saved settings.',
+                helpBrowserTitle: 'Browser sound',
+                helpBrowserItem1: 'No special browser permissions are required for playback.',
+                helpBrowserItem2: 'The browser must allow sound and may not mute the tab.',
+                helpBrowserItem3: 'If autoplay is blocked, tap a button once to start the sound.',
+                stopwatchNotRunning: 'The stopwatch is not running.',
+                musicUnavailable: 'Background music is unavailable',
+                previewBlocked: 'Music preview is blocked while background music is playing.',
+                soundFileNotFound: 'Sound file not found!',
+                showInfo: 'Show info',
+                mute: 'Mute',
+                previewLocked: '🔒 Music playing',
+                understood: 'Understood',
+                helpCloseAria: 'Close help',
+                resetSizeTooltip: 'Default size',
+                showInputs: 'Show inputs',
+                hideInputs: 'Hide inputs'
+            }
+        };
+
+        function tl(key) {
+            return (LANG[currentLanguage] && LANG[currentLanguage][key]) || key;
+        }
+
+        function setText(id, value) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = value;
+            }
+        }
+
+        function setHtml(id, value) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.innerHTML = value;
+            }
+        }
+
+        function applyLanguage() {
+            document.documentElement.lang = currentLanguage;
+            localStorage.setItem(LANGUAGE_KEY, currentLanguage);
+
+            document.getElementById('toolbarTitle').innerHTML = tl('toolbarTitle');
+            document.getElementById('navTimerBtn').textContent = tl('navTimer');
+            document.getElementById('navStopwatchBtn').textContent = tl('navStopwatch');
+            document.getElementById('navClockBtn').textContent = tl('navClock');
+
+            const langBtn = document.getElementById('languageToggleBtn');
+            langBtn.textContent = currentLanguage.toUpperCase();
+            langBtn.title = tl('langTooltip');
+            document.getElementById('helpBtn').title = tl('helpTooltip');
+            document.getElementById('settingsToggleBtn').title = tl('settingsTooltip');
+
+            const isDark = document.body.classList.contains('dark-mode');
+            const darkToolbarBtn = document.getElementById('darkModeToggleBtn');
+            if (darkToolbarBtn) {
+                darkToolbarBtn.title = isDark ? tl('darkModeTooltip') : tl('lightModeTooltip');
+            }
+            const darkModeStatus = document.getElementById('darkModeStatus');
+            if (darkModeStatus) {
+                darkModeStatus.textContent = isDark ? tl('on') : tl('off');
+            }
+
+            setText('panelTitle', tl('settings'));
+            setText('generalSettingsTitle', tl('generalSettings'));
+            setText('soundSettingsTitle', tl('soundSettings'));
+            setText('colorSettingsTitle', tl('colorSettingsTitle'));
+            setText('lapsTitle', tl('laps'));
+            setText('lapsEmpty', tl('noLaps'));
+            const runningText = document.getElementById('runningText');
+            if (runningText) {
+                runningText.textContent = isRunning ? tl('running') : tl('paused');
+            }
+            const controls = document.getElementById('startPauseBtn');
+            const lapBtn = document.getElementById('lapBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            if (controls) {
+                controls.textContent = isRunning ? tl('pause') : (elapsedMilliseconds > 0 ? tl('resume') : tl('start'));
+            }
+            if (lapBtn) lapBtn.textContent = tl('lap');
+            if (clearBtn) clearBtn.textContent = tl('clear');
+
+            const darkModeBtn = document.getElementById('darkModeBtn');
+            if (darkModeBtn) {
+                darkModeBtn.innerHTML = `${tl('darkMode')}: <span id="darkModeStatus">${isDark ? tl('on') : tl('off')}</span>`;
+            }
+            setText('timerColorBtn', tl('timerColor'));
+            setText('containerColorBtn', tl('containerColor'));
+            setText('lapsContainerColorBtn', tl('lapsContainerColor'));
+            setText('bgColorBtn', tl('backgroundColor'));
+            setText('resetColorsBtn', tl('resetColors'));
+            const analogModeBtn = document.getElementById('analogModeBtn');
+            if (analogModeBtn) {
+                analogModeBtn.innerHTML = `${tl('analogDisplay')}: <span id="analogModeStatus">${isAnalogMode ? tl('on') : tl('off')}</span>`;
+            }
+            setText('sizeSettingLabel', tl('textSize'));
+            const musicToggleBtn = document.getElementById('musicToggleBtn');
+            if (musicToggleBtn) {
+                musicToggleBtn.innerHTML = `${tl('backgroundMusic')}: <span id="musicStatus">${musicEnabled ? tl('on') : tl('off')}</span>`;
+            }
+            setText('previewMusicBtn', musicPreviewPlaying ? tl('stopPreview') : tl('previewMusic'));
+            const musicAlwaysOnBtn = document.getElementById('musicAlwaysOnBtn');
+            if (musicAlwaysOnBtn) {
+                musicAlwaysOnBtn.innerHTML = `${tl('musicAlwaysOn')}: <span id="musicAlwaysOnStatus">${musicAlwaysOn ? tl('on') : tl('off')}</span>`;
+            }
+            setText('timerColorMenuTitle', tl('chooseColor'));
+            setText('timerColorMenuHint', tl('customColor'));
+            setText('containerColorMenuTitle', tl('containerColorMenuTitle'));
+            setText('containerColorMenuHint', tl('customColor'));
+            setText('lapsColorMenuTitle', tl('lapsContainerColorMenuTitle'));
+            setText('lapsColorMenuHint', tl('customColor'));
+            setText('bgColorMenuTitle', tl('backgroundColorMenuTitle'));
+            setText('bgColorMenuHint', tl('customColor'));
+            setText('musicHintText', tl('musicHintText'));
+            const errorText = document.getElementById('errorText');
+            if (errorText) errorText.textContent = tl('soundFileNotFound');
+            const understoodBtn = document.getElementById('understoodBtn');
+            if (understoodBtn) understoodBtn.textContent = tl('understood');
+            const helpCloseBtn = document.querySelector('.help-dialog-close');
+            if (helpCloseBtn) helpCloseBtn.setAttribute('aria-label', tl('helpCloseAria'));
+            const helpTitle = document.getElementById('helpTitle');
+            if (helpTitle) helpTitle.textContent = tl('toolbarTitle').replace(/<br>/g, ' ');
+            const hint = document.getElementById('musicHint');
+            if (hint) {
+                hint.title = tl('showInfo');
+            }
+            const muteLabel = document.getElementById('musicMuteBtn');
+            if (muteLabel) {
+                muteLabel.title = tl('mute');
+            }
+            const previewMusicBtn = document.getElementById('previewMusicBtn');
+            if (previewMusicBtn && musicPreviewPlaying) {
+                previewMusicBtn.textContent = tl('stopPreview');
+            } else if (previewMusicBtn) {
+                previewMusicBtn.textContent = tl('previewMusic');
+            }
+            updatePreviewButtons();
+            renderTitleToggleText();
+        }
+
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'de' ? 'en' : 'de';
+            applyLanguage();
+        }
+        const SETTINGS_KEY = 'stoppuhrMitHintergrundmusikSettingsV1';
+        const DEFAULT_LAPS_HEIGHT = 180;
+        const MIN_LAPS_HEIGHT = 80;
+    const DEFAULT_TIMER_FONT_SIZE = 150;
+    const LIGHT_DEFAULTS = {
+        timerColor: '#333333',
+        containerColor: '#ffffff',
+        lapsContainerColor: '#fafafa',
+        bgColor: '#667eea'
+    };
+    const DARK_DEFAULTS = {
+        timerColor: '#e0e0e0',
+        containerColor: '#1e1e2f',
+        lapsContainerColor: '#2a2a3f',
+        bgColor: '#0c1120'
+    };
+    const BASE_CONTROL_BUTTON_FONT_SIZE = 14;
+    const BASE_LAPS_TITLE_FONT_SIZE = 18;
+    const BASE_RUNNING_TEXT_FONT_SIZE = 18;
+    const BASE_LAPS_TEXT_FONT_SIZE = 14;
+    const BASE_LAPS_EMPTY_FONT_SIZE = 13;
+
+        function isDefaultPaletteActive() {
+            const timerColor = (document.getElementById('timerColor') || {}).value;
+            const containerColor = (document.getElementById('containerColor') || {}).value;
+            const lapsContainerColor = (document.getElementById('lapsContainerColor') || {}).value;
+            const bgColor = (document.getElementById('bgColor') || {}).value;
+
+            const isLightDefaults =
+                timerColor === LIGHT_DEFAULTS.timerColor &&
+                containerColor === LIGHT_DEFAULTS.containerColor &&
+                lapsContainerColor === LIGHT_DEFAULTS.lapsContainerColor &&
+                bgColor === LIGHT_DEFAULTS.bgColor;
+
+            const isDarkDefaults =
+                timerColor === DARK_DEFAULTS.timerColor &&
+                containerColor === DARK_DEFAULTS.containerColor &&
+                lapsContainerColor === DARK_DEFAULTS.lapsContainerColor &&
+                bgColor === DARK_DEFAULTS.bgColor;
+
+            return isLightDefaults || isDarkDefaults;
+        }
+
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(max, value));
+        }
+
+        function getEffectiveTimerFontSize() {
+            const selectedSize = Number(document.getElementById('timerFontSize').value) || DEFAULT_TIMER_FONT_SIZE;
+            const isMobile = window.matchMedia('(max-width: 768px)').matches;
+            const timerContainer = document.getElementById('timerContainer');
+
+            if (!isMobile || !timerContainer) {
+                return selectedSize;
+            }
+
+            const availableWidth = Math.max(220, timerContainer.clientWidth - 32);
+            const maxSizeForWidth = Math.floor(availableWidth / 6.9);
+            return clamp(selectedSize, 36, maxSizeForWidth);
+        }
+
+        function adjustLapsContainerSize() {
+            const timerContainer = document.getElementById('timerContainer');
+            const lapsList = document.getElementById('lapsList');
+            if (!timerContainer || !lapsList) return;
+
+            lapsList.style.height = DEFAULT_LAPS_HEIGHT + 'px';
+
+            const safeTop = 70;
+            const safeBottom = 20;
+            const viewportBottom = window.innerHeight - safeBottom;
+
+            const rect = timerContainer.getBoundingClientRect();
+            const overflowTop = Math.max(0, safeTop - rect.top);
+            const overflowBottom = Math.max(0, rect.bottom - viewportBottom);
+            const overflowTotal = overflowTop + overflowBottom;
+
+            if (overflowTotal > 0) {
+                const nextHeight = clamp(DEFAULT_LAPS_HEIGHT - overflowTotal - 4, MIN_LAPS_HEIGHT, DEFAULT_LAPS_HEIGHT);
+                lapsList.style.height = nextHeight + 'px';
+            }
+        }
+
+function showError(msg) {
+    const errorDiv = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+    errorText.textContent = msg;
+    errorDiv.style.display = 'block';
+    errorDiv.style.left = '20px';
+    bringToFront(errorDiv);
+    let timeoutId;
+    const startTimeout = () => {
+        timeoutId = setTimeout(() => {
+            if (errorDiv.style.display !== 'none') {
+                clearError();
+            }
+        }, 6000);
+    };
+    const pauseTimeout = () => clearTimeout(timeoutId);
+    const resumeTimeout = () => startTimeout();
+    errorDiv.onmouseenter = pauseTimeout;
+    errorDiv.onmouseleave = resumeTimeout;
+    startTimeout();
+}
+
+
+
+function handleUnderstood() {
+    clearError();
+}
+
+function clearError() {
+    const errorDiv = document.getElementById('errorMessage');
+    errorDiv.style.opacity = '0';
+    errorDiv.style.transition = 'opacity 0.5s ease-out';
+    setTimeout(() => {
+        errorDiv.style.display = 'none';
+        errorDiv.style.opacity = '1';
+    }, 500);
+}
+
+function initMusicHint() {
+    const hint = document.getElementById('musicHint');
+    if (!hint) return;
+
+    const collapseHint = () => {
+        hint.classList.remove('expanding');
+        hint.classList.add('collapsing');
+        window.setTimeout(() => {
+            hint.classList.remove('collapsing');
+            hint.classList.add('collapsed');
+        }, 260);
+    };
+
+    const scheduleCollapse = () => {
+        if (hint._collapseTimer) {
+            clearTimeout(hint._collapseTimer);
+        }
+        hint._collapseTimer = setTimeout(collapseHint, 10000);
+    };
+
+    const expandHint = () => {
+        hint.classList.remove('collapsed', 'collapsing');
+        hint.classList.add('expanding');
+        window.setTimeout(() => {
+            hint.classList.remove('expanding');
+        }, 280);
+        scheduleCollapse();
+    };
+
+    scheduleCollapse();
+
+    hint.addEventListener('click', () => {
+        if (hint.classList.contains('collapsed')) {
+            expandHint();
+        }
+    });
+
+    hint.addEventListener('keydown', (event) => {
+        if (!hint.classList.contains('collapsed')) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            expandHint();
+        }
+    });
+}
+
+        const KAHOT_ANSWER_PLAYLIST = [
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Kahoot-Answer/Answer030 Climbing.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Kahoot-Answer/Answer030 Groovy.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Kahoot-Answer/Answer030 Original.mp3"
+        ];
+
+        const MINECRAFT_ALBUM_PLAYLIST = [
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/01 - C418 - Key.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/02 - C418 - Door.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/03 - C418 - Subwoofer Lullaby.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/04 - C418 - Death.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/05 - C418 - Living Mice.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/06 - C418 - Moog City.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/07 - C418 - Haggstrom.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/08 - C418 - Minecraft.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/09 - C418 - Oxygène.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/10 - C418 - Équinoxe.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/11 - C418 - Mice on Venus.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/12 - C418 - Dry Hands.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/13 - C418 - Wet Hands.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/14 - C418 - Clark.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/15 - C418 - Chris.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/16 - C418 - Thirteen.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/17 - C418 - Excuse.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/18 - C418 - Sweden.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/19 - C418 - Cat.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/20 - C418 - Dog.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/21 - C418 - Danny.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/22 - C418 - Beginning.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/23 - C418 - Droopy Likes Ricochet.mp3",
+            "https://raw.githubusercontent.com/DeV1n025/Timer-Sounds/refs/heads/Hintergrundmusik-Minecraft/24 - C418 - Droopy Likes Your Face.mp3"
+        ];
+
+        function loadCurrentTrack() {
+            const musicAudio = document.getElementById('musicAudio');
+            if (musicPlaylist.length > 0) {
+                musicAudio.src = musicPlaylist[currentTrackIndex];
+                musicAudio.load();
+            }
+        }
+
+        function getRawMusicSource() {
+            const musicAudio = document.getElementById('musicAudio');
+            return (musicAudio.getAttribute('src') || '').trim();
+        }
+
+        function shufflePlaylist() {
+            for (let i = musicPlaylist.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [musicPlaylist[i], musicPlaylist[j]] = [musicPlaylist[j], musicPlaylist[i]];
+            }
+            currentTrackIndex = 0;
+        }
+        
+        function formatElapsed(ms) {
+            const totalCentiseconds = Math.floor(ms / 10);
+            const centiseconds = totalCentiseconds % 100;
+            const totalSeconds = Math.floor(totalCentiseconds / 100);
+            const hours = Math.floor(totalSeconds / 3600);
+            const mins = Math.floor((totalSeconds % 3600) / 60);
+            const secs = totalSeconds % 60;
+            return String(hours).padStart(2, '0') + ':' +
+                String(mins).padStart(2, '0') + ':' +
+                String(secs).padStart(2, '0') + '.' +
+                String(centiseconds).padStart(2, '0');
+        }
+
+        function updateDisplay() {
+            document.getElementById('display').textContent = formatElapsed(elapsedMilliseconds);
+            updateAnalogClockFromElapsed(elapsedMilliseconds);
+            // Update tab title to show elapsed time while running or paused (no centiseconds)
+            try {
+                if (tabBlinkEnabled && (isRunning || (typeof elapsedMilliseconds === 'number' && elapsedMilliseconds > 0))) {
+                    const short = formatElapsed(elapsedMilliseconds).split('.')[0];
+                    document.title = short + ' - ' + BASE_TITLE;
+                } else {
+                    document.title = BASE_TITLE;
+                }
+            } catch (e) {}
+        }
+
+        function updateLapHighlights() {
+            const lapItems = Array.from(document.querySelectorAll('#lapsList .lap-item'));
+            if (lapItems.length === 0) return;
+
+            const lapValues = lapItems
+                .map(item => Number(item.dataset.lapMs))
+                .filter(value => Number.isFinite(value));
+
+            if (lapValues.length === 0) return;
+
+            const minLap = Math.min(...lapValues);
+            const maxLap = Math.max(...lapValues);
+
+            lapItems.forEach(item => {
+                const lapMs = Number(item.dataset.lapMs);
+                item.classList.remove('lap-fastest', 'lap-slowest');
+
+                if (!Number.isFinite(lapMs)) return;
+                if (lapMs === minLap) {
+                    item.classList.add('lap-fastest');
+                }
+                if (lapMs === maxLap && maxLap !== minLap) {
+                    item.classList.add('lap-slowest');
+                }
+            });
+        }
+
+        function updateControlButtons() {
+            const startPauseBtn = document.getElementById('startPauseBtn');
+            const lapBtn = document.getElementById('lapBtn');
+
+            if (startPauseBtn) {
+                startPauseBtn.textContent = isRunning ? tl('pause') : (elapsedMilliseconds > 0 ? tl('resume') : tl('start'));
+                startPauseBtn.classList.toggle('active-start', isRunning || elapsedMilliseconds > 0);
+                startPauseBtn.classList.toggle('active-pause', isRunning);
+            }
+            // Runde bleibt immer klickbar, damit bei pausiert/gelöscht die Fehlermeldung erscheinen kann.
+            lapBtn.disabled = false;
+        }
+
+        function startStopwatch() {
+            if (isRunning) return;
+            isRunning = true;
+            startTimestamp = Date.now() - elapsedMilliseconds;
+            // persist absolute start timestamp so stopwatch survives sleep/reloads
+            try { localStorage.setItem('stopwatchStartTimestamp', String(startTimestamp)); localStorage.setItem('stopwatchRunning', 'true'); } catch (e) {}
+            const runningText = document.getElementById('runningText');
+            runningText.textContent = tl('running');
+            runningText.style.display = 'block';
+
+            if (musicEnabled) {
+                const musicAudio = document.getElementById('musicAudio');
+                if (elapsedMilliseconds === 0) {
+                    musicAudio.currentTime = 0;
+                }
+                musicAudio.play().catch(() => {});
+                updatePreviewButtons();
+            }
+
+            interval = setInterval(() => {
+                elapsedMilliseconds = Date.now() - startTimestamp;
+                updateDisplay();
+            }, 50);
+
+            updateControlButtons();
+        }
+
+        function pauseStopwatch() {
+            if (!isRunning) return;
+            isRunning = false;
+            clearInterval(interval);
+            elapsedMilliseconds = Date.now() - startTimestamp;
+            updateDisplay();
+            // persist elapsed and clear running flag
+            try {
+                localStorage.setItem('stopwatchElapsedMs', String(elapsedMilliseconds));
+                localStorage.setItem('stopwatchRunning', 'false');
+                localStorage.removeItem('stopwatchStartTimestamp');
+            } catch (e) {}
+            if (!musicAlwaysOn) {
+                document.getElementById('musicAudio').pause();
+                updatePreviewButtons();
+            }
+
+            const runningText = document.getElementById('runningText');
+            runningText.textContent = tl('paused');
+            runningText.style.display = 'block';
+            updateControlButtons();
+        }
+
+        function lapStopwatch() {
+            if (!isRunning) {
+                showError(tl('stopwatchNotRunning'));
+                return;
+            }
+
+            lapCounter += 1;
+            const lapDifference = elapsedMilliseconds - lastLapMilliseconds;
+            lastLapMilliseconds = elapsedMilliseconds;
+            const lapsEmpty = document.getElementById('lapsEmpty');
+            const lapsList = document.getElementById('lapsList');
+
+            lapsEmpty.style.display = 'none';
+
+            const lapItem = document.createElement('div');
+            lapItem.className = 'lap-item';
+            lapItem.dataset.lapMs = String(lapDifference);
+            lapItem.innerHTML = '<span>' + tl('lapLabel') + ' ' + lapCounter + '</span><span>' + formatElapsed(lapDifference) + ' (' + formatElapsed(elapsedMilliseconds) + ')</span>';
+            lapsList.prepend(lapItem);
+            updateLapHighlights();
+            // persist laps to localStorage
+            try {
+                const raw = localStorage.getItem(LAPS_KEY);
+                const arr = raw ? JSON.parse(raw) : [];
+                arr.unshift({ num: lapCounter, lapMs: lapDifference, totalMs: elapsedMilliseconds, ts: Date.now() });
+                localStorage.setItem(LAPS_KEY, JSON.stringify(arr));
+            } catch (e) {}
+        }
+
+        function resetStopwatch() {
+            isRunning = false;
+            clearInterval(interval);
+            elapsedMilliseconds = 0;
+            startTimestamp = null;
+            lapCounter = 0;
+            lastLapMilliseconds = 0;
+            updateDisplay();
+
+            const runningText = document.getElementById('runningText');
+            runningText.style.display = 'none';
+
+            const lapsList = document.getElementById('lapsList');
+            lapsList.innerHTML = '<div id="lapsEmpty">' + tl('noLaps') + '</div>';
+
+            document.getElementById('musicAudio').pause();
+            updatePreviewButtons();
+            updateControlButtons();
+            try { localStorage.removeItem('stopwatchStartTimestamp'); localStorage.removeItem('stopwatchElapsedMs'); localStorage.removeItem('stopwatchRunning'); localStorage.removeItem(LAPS_KEY); } catch (e) {}
+        }
+
+        function toggleTimer() {
+            if (isRunning) {
+                pauseStopwatch();
+            } else {
+                startStopwatch();
+            }
+        }
+
+        function startTimer() {
+            startStopwatch();
+        }
+
+        function pauseTimer() {
+            pauseStopwatch();
+        }
+
+        function resetTimer() {
+            resetStopwatch();
+        }
+
+        function toggleMusic() {
+            musicEnabled = !musicEnabled;
+            if (musicEnabled && (isRunning || musicAlwaysOn)) {
+                document.getElementById('musicAudio').play().catch(() => {});
+            } else {
+                document.getElementById('musicAudio').pause();
+            }
+            document.getElementById('musicStatus').textContent = musicEnabled ? 'Ein' : 'Aus';
+            updatePreviewButtons();
+            saveSettings();
+        }
+
+        function toggleMusicAlwaysOn() {
+            musicAlwaysOn = !musicAlwaysOn;
+            document.getElementById('musicAlwaysOnStatus').textContent = musicAlwaysOn ? 'Ein' : 'Aus';
+
+            // If user enables "Music always on", ensure background music is enabled
+            // and start playback even if it was previously turned off.
+            if (musicAlwaysOn) {
+                // Force-enable background music and load the selected source, then try to play.
+                musicEnabled = true;
+                const musicStatusEl = document.getElementById('musicStatus');
+                if (musicStatusEl) musicStatusEl.textContent = 'Ein';
+                try { changeMusicSound(); } catch (e) {}
+                document.getElementById('musicAudio').play().catch(() => {});
+            } else {
+                // If the stopwatch is not running, pause background music when disabling "always on".
+                if (!isRunning) {
+                    document.getElementById('musicAudio').pause();
+                }
+            }
+
+            updatePreviewButtons();
+            saveSettings();
+        }
+
+        function isBackgroundMusicPlaying() {
+            const audio = document.getElementById('musicAudio');
+            return !!getRawMusicSource() && !audio.paused && !musicPreviewPlaying;
+        }
+
+        function changeMusicSound() {
+            const musicAudio = document.getElementById('musicAudio');
+            const select = document.getElementById('musicSound');
+            const fileInput = document.getElementById('musicFile');
+            // Stop any playing preview first
+            musicAudio.pause();
+            musicAudio.currentTime = 0;
+            musicPreviewPlaying = false;
+            // Remove existing ended listener to avoid multiples
+            musicAudio.removeEventListener('ended', nextMusicTrack);
+
+            if (select.value === 'upload') {
+                fileInput.style.display = 'block';
+                fileInput.value = '';
+                musicPlaylist = [];
+                musicAudio.removeAttribute('src');
+                musicAudio.load();
+                document.getElementById('musicFileName').textContent = '';
+            } else if (select.value === 'Kahoot Answer') {
+                fileInput.style.display = 'none';
+                document.getElementById('musicFileName').textContent = '';
+                musicPlaylist = [...KAHOT_ANSWER_PLAYLIST];
+                isMusicShuffle = true;
+                shufflePlaylist();
+                loadCurrentTrack();
+            } else if (select.value === 'Minecraft Album') {
+                fileInput.style.display = 'none';
+                document.getElementById('musicFileName').textContent = '';
+                musicPlaylist = [...MINECRAFT_ALBUM_PLAYLIST];
+                isMusicShuffle = false;
+                currentTrackIndex = 0;
+                loadCurrentTrack();
+            } else {
+                fileInput.style.display = 'none';
+                document.getElementById('musicFileName').textContent = '';
+                musicPlaylist = [select.value];
+                currentTrackIndex = 0;
+                isMusicShuffle = false;
+                loadCurrentTrack();
+            }
+
+            // Add ended listener if playlist has multiple tracks
+            if (musicPlaylist.length > 1) {
+                musicAudio.loop = false;
+                musicAudio.addEventListener('ended', nextMusicTrack);
+            } else {
+                musicAudio.loop = true;
+            }
+            musicAudio.load();
+
+            if (musicEnabled && isRunning && musicPlaylist.length > 0) {
+                musicAudio.play().catch((e) => showError(tl('musicUnavailable')));
+            }
+            updatePreviewButtons();
+            saveSettings();
+        }
+
+        function nextMusicTrack() {
+            const musicAudio = document.getElementById('musicAudio');
+            if (musicPlaylist.length <= 1) return;
+            if (isMusicShuffle) {
+                currentTrackIndex = Math.floor(Math.random() * musicPlaylist.length);
+            } else {
+                currentTrackIndex = (currentTrackIndex + 1) % musicPlaylist.length;
+            }
+            loadCurrentTrack();
+            musicAudio.play().catch(() => {});
+        }
+        function previewMusic() {
+            const audio = document.getElementById('musicAudio');
+            const btn = document.getElementById('previewMusicBtn');
+            if (musicPlaylist.length === 0 && !getRawMusicSource()) return;
+
+            if (isBackgroundMusicPlaying()) {
+                showError(tl('previewBlocked'));
+                updatePreviewButtons();
+                return;
+            }
+
+            if (musicPreviewPlaying) {
+                audio.pause();
+                musicPreviewPlaying = false;
+                btn.textContent = tl('previewMusic');
+                return;
+            }
+
+            // Play first track for preview
+            if (musicPlaylist.length > 0) {
+                audio.src = musicPlaylist[0];
+            }
+            audio.loop = false;
+            audio.currentTime = 0;
+            audio.play().catch(e => console.log('Preview failed:', e));
+            musicPreviewPlaying = true;
+            btn.textContent = tl('stopPreview');
+
+            const endHandler = () => {
+                musicPreviewPlaying = false;
+                btn.textContent = tl('previewMusic');
+                audio.removeEventListener('ended', endHandler);
+                updatePreviewButtons();
+            };
+            audio.addEventListener('ended', endHandler, {once: true});
+            updatePreviewButtons();
+        }
+        function updatePreviewButtons() {
+            const musicBtn = document.getElementById('previewMusicBtn');
+            if (musicBtn) {
+                const musicRunning = isBackgroundMusicPlaying();
+                const hasSource = !!getRawMusicSource();
+                musicBtn.disabled = !hasSource || musicRunning;
+                musicBtn.style.opacity = musicRunning ? '0.65' : '1';
+
+                if (musicRunning) {
+                    musicBtn.textContent = tl('previewLocked');
+                } else if (!musicBtn.disabled && musicPreviewPlaying) {
+                    musicBtn.textContent = tl('stopPreview');
+                } else if (!musicBtn.disabled) {
+                    musicBtn.textContent = tl('previewMusic');
+                } else {
+                    musicBtn.textContent = tl('previewMusic');
+                }
+            }
+        }
+        
+        // Title editing and visibility
+        function enableTitleEdit() {
+            const editRow = document.querySelector('.title-edit-row');
+            const edit = document.getElementById('inputTitleEdit');
+            const title = document.getElementById('inputTitle');
+            const saveBtn = document.getElementById('inputTitleSaveBtn');
+            if (!title || !edit) return;
+            edit.value = title.textContent || '';
+            title.style.display = 'none';
+            if (editRow) editRow.style.display = 'flex';
+            if (saveBtn) saveBtn.style.display = 'inline-flex';
+            edit.style.display = 'block';
+            edit.focus();
+            const len = edit.value.length;
+            try { edit.setSelectionRange(len, len); } catch (e) {}
+        }
+
+        function saveTitleEdit() {
+            const title = document.getElementById('inputTitle');
+            const edit = document.getElementById('inputTitleEdit');
+            if (!title || !edit) return;
+            const val = (edit.value || '').trim();
+            title.textContent = val === '' ? 'Stoppuhr' : val;
+            const editRow = document.querySelector('.title-edit-row');
+            const saveBtn = document.getElementById('inputTitleSaveBtn');
+            if (editRow) editRow.style.display = 'none';
+            if (saveBtn) saveBtn.style.display = 'none';
+            edit.style.display = 'none';
+            title.style.display = 'block';
+        }
+
+        function cancelTitleEdit() {
+            const title = document.getElementById('inputTitle');
+            const edit = document.getElementById('inputTitleEdit');
+            const editRow = document.querySelector('.title-edit-row');
+            const saveBtn = document.getElementById('inputTitleSaveBtn');
+            if (editRow) editRow.style.display = 'none';
+            if (saveBtn) saveBtn.style.display = 'none';
+            if (edit) edit.style.display = 'none';
+            if (title) title.style.display = 'block';
+        }
+
+        function handleTitleKey(e) {
+            if (e.key === 'Enter') {
+                e.target.blur();
+            } else if (e.key === 'Escape') {
+                cancelTitleEdit();
+            }
+        }
+
+        function toggleTitleVisibility() {
+            const el = document.getElementById('inputTitle');
+            const currentlyVisible = el ? (window.getComputedStyle(el).display !== 'none') : true;
+            const newVisible = !currentlyVisible;
+            if (el) el.style.display = newVisible ? 'block' : 'none';
+            try { localStorage.setItem('inputTitleVisible', newVisible ? 'true' : 'false'); } catch (e) {}
+            renderTitleToggleText();
+        }
+
+        function toggleTabBlink() {
+            tabBlinkEnabled = !tabBlinkEnabled;
+            try { saveSettings(); } catch (e) {}
+            const btn = document.getElementById('tabBlinkBtn');
+            if (btn) btn.innerHTML = `Anzeige im Tab: <span id="tabBlinkStatus">${tabBlinkEnabled ? 'Ein' : 'Aus'}</span>`;
+            if (!tabBlinkEnabled) document.title = BASE_TITLE;
+        }
+
+        function renderTitleToggleText() {
+            const btn = document.getElementById('titleToggleBtn');
+            if (!btn) return;
+            const stored = localStorage.getItem('inputTitleVisible');
+            const visible = stored === null ? true : stored === 'true';
+            btn.innerHTML = `${tl('showTitle')}: <span id="titleToggleStatus">${visible ? tl('on') : tl('off')}</span>`;
+        }
+        function setMusicVolume() {
+            document.getElementById('musicAudio').volume = document.getElementById('musicVolume').value;
+            saveSettings();
+        }
+
+        function muteMusic() {
+            document.getElementById('musicVolume').value = 0;
+            document.getElementById('musicAudio').volume = 0;
+            saveSettings();
+        }
+
+        function updateStopwatchUiScale() {
+            const timerSize = getEffectiveTimerFontSize();
+            const isMobile = window.matchMedia('(max-width: 768px)').matches;
+            const scale = timerSize / DEFAULT_TIMER_FONT_SIZE;
+            const buttonFontSize = clamp(BASE_CONTROL_BUTTON_FONT_SIZE * scale, 10, isMobile ? 18 : 30);
+            const lapsTitleFontSize = clamp(BASE_LAPS_TITLE_FONT_SIZE * scale, 12, isMobile ? 24 : 42);
+            const runningTextFontSize = clamp(BASE_RUNNING_TEXT_FONT_SIZE * scale, 12, isMobile ? 22 : 36);
+            const lapsTextFontSize = clamp(BASE_LAPS_TEXT_FONT_SIZE * scale, 10, isMobile ? 18 : 26);
+            const lapsEmptyFontSize = clamp(BASE_LAPS_EMPTY_FONT_SIZE * scale, 10, isMobile ? 17 : 24);
+
+            const lapsTitle = document.getElementById('lapsTitle');
+            if (lapsTitle) {
+                lapsTitle.style.fontSize = lapsTitleFontSize + 'px';
+            }
+
+            const runningText = document.getElementById('runningText');
+            if (runningText) {
+                runningText.style.fontSize = runningTextFontSize + 'px';
+            }
+
+            const lapsList = document.getElementById('lapsList');
+            if (lapsList) {
+                lapsList.style.fontSize = lapsTextFontSize + 'px';
+            }
+
+            const lapsEmpty = document.getElementById('lapsEmpty');
+            if (lapsEmpty) {
+                lapsEmpty.style.fontSize = lapsEmptyFontSize + 'px';
+            }
+
+            document.querySelectorAll('#timerContainer .btn-row button').forEach(function(button) {
+                button.style.fontSize = buttonFontSize + 'px';
+            });
+        }
+
+        function setTimerFontSize() {
+            applyDisplaySize();
+            updateStopwatchUiScale();
+            adjustLapsContainerSize();
+            saveSettings();
+        }
+
+        function resetTimerFontSize() {
+            const defaultSize = DEFAULT_TIMER_FONT_SIZE;
+            document.getElementById('timerFontSize').value = defaultSize;
+            applyDisplaySize();
+            updateStopwatchUiScale();
+            adjustLapsContainerSize();
+            saveSettings();
+        }
+
+        function setTimerColor() {
+            const color = document.getElementById('timerColor').value;
+            document.getElementById('display').style.color = color;
+            document.getElementById('runningText').style.color = color;
+            document.getElementById('lapsTitle').style.color = color;
+            document.getElementById('analogDisplay').style.color = color;
+        }
+
+        function updateAnalogClockFromElapsed(elapsedMs) {
+            const totalSecondsFloat = Math.max(0, elapsedMs) / 1000;
+            const hours = Math.floor(totalSecondsFloat / 3600) % 12;
+            const minutes = Math.floor((totalSecondsFloat % 3600) / 60);
+            const seconds = totalSecondsFloat % 60;
+
+            const hourAngle = hours * 30 + minutes * 0.5;
+            const minuteAngle = minutes * 6 + seconds * 0.1;
+            const secondAngle = seconds * 6;
+
+            document.getElementById('analogHourHand').style.transform = 'translateX(-50%) rotate(' + hourAngle + 'deg)';
+            document.getElementById('analogMinuteHand').style.transform = 'translateX(-50%) rotate(' + minuteAngle + 'deg)';
+            document.getElementById('analogSecondHand').style.transform = 'translateX(-50%) rotate(' + secondAngle + 'deg)';
+        }
+
+        function decorateAnalogFace(face) {
+            if (!face || face.dataset.decorated === '1') return;
+
+            const minorTicks = document.createElement('div');
+            minorTicks.className = 'analog-ticks analog-ticks-minor';
+
+            const majorTicks = document.createElement('div');
+            majorTicks.className = 'analog-ticks analog-ticks-major';
+
+            const numbers = document.createElement('div');
+            numbers.className = 'analog-numbers';
+            for (let i = 1; i <= 12; i++) {
+                const number = document.createElement('span');
+                const angle = (i / 12) * (Math.PI * 2) - Math.PI / 2;
+                const x = 50 + Math.cos(angle) * 38;
+                const y = 50 + Math.sin(angle) * 38;
+                number.className = 'analog-number';
+                number.textContent = String(i);
+                number.style.left = x + '%';
+                number.style.top = y + '%';
+                numbers.appendChild(number);
+            }
+
+            face.insertBefore(minorTicks, face.firstChild);
+            face.insertBefore(majorTicks, face.firstChild);
+            face.insertBefore(numbers, face.firstChild);
+            face.dataset.decorated = '1';
+        }
+
+        function applyDisplaySize() {
+            const timerSize = getEffectiveTimerFontSize();
+            document.getElementById('display').style.fontSize = timerSize + 'px';
+
+            // Scale title and title edit controls relative to display size
+            try {
+                const scale = timerSize / 150;
+                const titleSize = Math.max(12, Math.round(20 * scale));
+                const editFont = Math.max(12, Math.round(14 * scale));
+                const inputTitle = document.getElementById('inputTitle');
+                if (inputTitle) inputTitle.style.fontSize = titleSize + 'px';
+                const inputEdit = document.getElementById('inputTitleEdit');
+                if (inputEdit) inputEdit.style.fontSize = editFont + 'px';
+                document.querySelectorAll('.title-edit-row input').forEach(el => el.style.fontSize = editFont + 'px');
+                document.querySelectorAll('#inputTitleSaveBtn').forEach(el => el.style.fontSize = editFont + 'px');
+            } catch (e) {}
+
+            const analogFace = document.querySelector('#analogDisplay .analog-clock-face');
+            const analogSize = Math.max(130, Math.min(360, Math.round(timerSize * 1.45)));
+            analogFace.style.width = analogSize + 'px';
+            analogFace.style.height = analogSize + 'px';
+            const analogNumberSize = Math.max(9, Math.min(18, Math.round(analogSize * 0.06)));
+            analogFace.style.setProperty('--analog-number-size', analogNumberSize + 'px');
+            const handScale = analogSize / 220;
+            const hourWidth = Math.max(7, Math.min(16, Math.round(10 * handScale)));
+            const minuteWidth = Math.max(5, Math.min(12, Math.round(7 * handScale)));
+            const secondWidth = Math.max(2, Math.min(5, Math.round(2 * handScale)));
+            const handBorder = Math.max(1, Math.min(3, Math.round(2 * handScale * 0.85)));
+            analogFace.style.setProperty('--analog-hour-width', hourWidth + 'px');
+            analogFace.style.setProperty('--analog-minute-width', minuteWidth + 'px');
+            analogFace.style.setProperty('--analog-second-width', secondWidth + 'px');
+            analogFace.style.setProperty('--analog-hand-border', handBorder + 'px');
+        }
+
+        function applyAnalogMode() {
+            const timerContainer = document.getElementById('timerContainer');
+            const analogDisplay = document.getElementById('analogDisplay');
+            const modeStatus = document.getElementById('analogModeStatus');
+            const sizeLabel = document.getElementById('sizeSettingLabel');
+            decorateAnalogFace(document.querySelector('#analogDisplay .analog-clock-face'));
+
+            timerContainer.classList.toggle('analog-mode', isAnalogMode);
+            analogDisplay.setAttribute('aria-hidden', isAnalogMode ? 'false' : 'true');
+            modeStatus.textContent = isAnalogMode ? tl('on') : tl('off');
+            sizeLabel.textContent = isAnalogMode ? tl('textSize') : tl('textSize');
+
+            applyDisplaySize();
+            updateDisplay();
+            saveSettings();
+        }
+
+        function toggleAnalogMode() {
+            isAnalogMode = !isAnalogMode;
+            applyAnalogMode();
+        }
+
+        function toggleColorMenu() {
+            const menu = document.getElementById('colorMenu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function pickColor(color) {
+            document.getElementById('timerColor').value = color;
+            setTimerColor();
+            saveSettings();
+            try { localStorage.setItem('timerColorCustom','true'); } catch(e) {}
+        }
+
+        function toggleContainerColorMenu() {
+            const menu = document.getElementById('containerColorMenu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function pickContainerColor(color) {
+            document.getElementById('containerColor').value = color;
+            document.querySelectorAll('.container').forEach(function(container) {
+                container.style.background = color;
+            });
+            saveSettings();
+            try { localStorage.setItem('containerColorCustom','true'); } catch(e) {}
+        }
+
+        function toggleLapsContainerColorMenu() {
+            const menu = document.getElementById('lapsContainerColorMenu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function pickLapsContainerColor(color) {
+            document.getElementById('lapsContainerColor').value = color;
+            const lapsList = document.getElementById('lapsList');
+            if (lapsList) {
+                lapsList.style.background = color;
+            }
+            saveSettings();
+            try { localStorage.setItem('lapsContainerColorCustom','true'); } catch(e) {}
+        }
+
+        function toggleBgColorMenu() {
+            const menu = document.getElementById('bgColorMenu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function pickBgColor(color) {
+            document.getElementById('bgColor').value = color;
+            document.body.style.background = color;
+            saveSettings();
+            try { localStorage.setItem('bgColorCustom','true'); } catch(e) {}
+        }
+
+        function resetColors() {
+            const isDark = document.body.classList.contains('dark-mode');
+            
+            // Hintergrund
+            document.body.style.background = isDark 
+                ? 'linear-gradient(135deg, #0c1120 0%, #170f20 100%)' 
+                : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            document.getElementById('bgColor').value = isDark ? '#0c1120' : '#667eea';
+            
+            // Container
+            const containerColor = isDark ? '#1e1e2f' : '#ffffff';
+            document.querySelectorAll('.container').forEach(function(container) {
+                container.style.background = containerColor;
+            });
+            document.getElementById('containerColor').value = containerColor;
+
+            const lapsContainerColor = isDark ? '#2a2a3f' : '#fafafa';
+            document.getElementById('lapsList').style.background = lapsContainerColor;
+            document.getElementById('lapsContainerColor').value = lapsContainerColor;
+            
+            // Timer-Farbe
+            const timerColor = isDark ? '#e0e0e0' : '#333333';
+            document.getElementById('display').style.color = timerColor;
+            document.getElementById('runningText').style.color = timerColor;
+            document.getElementById('lapsTitle').style.color = timerColor;
+            document.getElementById('analogDisplay').style.color = timerColor;
+            document.getElementById('timerColor').value = timerColor;
+            try {
+                localStorage.removeItem('timerColorCustom');
+                localStorage.removeItem('containerColorCustom');
+                localStorage.removeItem('lapsContainerColorCustom');
+                localStorage.removeItem('bgColorCustom');
+            } catch (e) {}
+            saveSettings();
+        }
+
+// Initialize sounds and error listeners
+        const musicAudio = document.getElementById('musicAudio');
+        
+        function handleAudioError(e) {
+            const src = e.target.src.split('?')[0].split('#')[0];
+            showError(`Sound-Datei nicht gefunden: ${decodeURIComponent(src.split('/').pop())}`);
+        }
+        
+        musicAudio.addEventListener('error', handleAudioError);
+        musicAudio.addEventListener('play', updatePreviewButtons);
+        musicAudio.addEventListener('pause', updatePreviewButtons);
+        musicAudio.addEventListener('ended', updatePreviewButtons);
+
+        // File upload listeners
+        document.getElementById('musicFile').addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                const musicAudio = document.getElementById('musicAudio');
+                musicAudio.src = url;
+                document.getElementById('musicFileName').textContent = file.name;
+                if (musicEnabled && isRunning) {
+                    musicAudio.play();
+                }
+            } else {
+                document.getElementById('musicFileName').textContent = '';
+            }
+            if (musicEnabled && isRunning) {
+                musicAudio.currentTime = 0;
+                musicAudio.play().catch(() => {});
+            }
+            this.value = '';
+            updatePreviewButtons();
+            saveSettings();
+        });
+        // Z-index management
+        let highestZIndex = 10;
+
+        function bringToFront(element) {
+            highestZIndex++;
+            element.style.zIndex = highestZIndex;
+        }
+
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('.container, .sound-panel, .clock');
+            if (target) {
+                bringToFront(target);
+            }
+        }, true);
+
+        function togglePanel() {
+            const content = document.getElementById('panelContent');
+            const arrow = document.getElementById('panelArrow');
+            content.classList.toggle('collapsed');
+            arrow.classList.toggle('collapsed');
+        }
+
+        function toggleSection(id) {
+            event.stopPropagation();
+            const content = document.getElementById('content-' + id);
+            const arrow = document.getElementById('arrow-' + id);
+            content.classList.toggle('collapsed');
+            arrow.classList.toggle('collapsed');
+        }
+
+        const moonSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+        const sunSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
+
+        function setDarkModeState(isDark) {
+            document.body.classList.toggle('dark-mode', isDark);
+            document.getElementById('darkModeStatus').textContent = isDark ? tl('on') : tl('off');
+            const toolbarBtn = document.getElementById('darkModeToggleBtn');
+            if (toolbarBtn) {
+                toolbarBtn.innerHTML = isDark ? moonSvg : sunSvg;
+                toolbarBtn.title = isDark ? tl('darkModeTooltip') : tl('lightModeTooltip');
+            }
+        }
+
+        function toggleDarkMode() {
+            const shouldSyncPalette = isDefaultPaletteActive();
+            setDarkModeState(!document.body.classList.contains('dark-mode'));
+            const isDark = document.body.classList.contains('dark-mode');
+            if (shouldSyncPalette) {
+                resetColors();
+            } else {
+                // preserve user custom colors, only apply defaults for colors the user hasn't customized
+                const isCustomTimer = (function(){ try{ return localStorage.getItem('timerColorCustom') === 'true'; }catch(e){return false;} })();
+                const isCustomContainer = (function(){ try{ return localStorage.getItem('containerColorCustom') === 'true'; }catch(e){return false;} })();
+                const isCustomLaps = (function(){ try{ return localStorage.getItem('lapsContainerColorCustom') === 'true'; }catch(e){return false;} })();
+                const isCustomBg = (function(){ try{ return localStorage.getItem('bgColorCustom') === 'true'; }catch(e){return false;} })();
+
+                if (!isCustomBg) {
+                    document.body.style.background = isDark 
+                        ? 'linear-gradient(135deg, #0c1120 0%, #170f20 100%)' 
+                        : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                    try { document.getElementById('bgColor').value = isDark ? '#0c1120' : '#667eea'; } catch(e) {}
+                }
+
+                if (!isCustomContainer) {
+                    const containerColor = isDark ? '#1e1e2f' : '#ffffff';
+                    document.querySelectorAll('.container').forEach(function(container) {
+                        container.style.background = containerColor;
+                    });
+                    try { document.getElementById('containerColor').value = containerColor; } catch(e) {}
+                }
+
+                if (!isCustomLaps) {
+                    const lapsContainerColor = isDark ? '#2a2a3f' : '#fafafa';
+                    try { document.getElementById('lapsList').style.background = lapsContainerColor; } catch(e) {}
+                    try { document.getElementById('lapsContainerColor').value = lapsContainerColor; } catch(e) {}
+                }
+
+                if (!isCustomTimer) {
+                    const timerColor = isDark ? '#e0e0e0' : '#333333';
+                    document.getElementById('timerColor').value = timerColor;
+                    setTimerColor();
+                } else {
+                    setTimerColor();
+                }
+            }
+            saveSettings();
+        }
+
+        changeMusicSound();
+        setMusicVolume();
+        loadSettings();
+        updatePreviewButtons();
+        updateControlButtons();
+        updateDisplay();
+        updateStopwatchUiScale();
+        adjustLapsContainerSize();
+        applyAnalogMode();
+        applyLanguage();
+        saveSettings();
+
+        window.addEventListener('resize', adjustLapsContainerSize);
+
+        function saveSettings() {
+            const data = {
+                darkMode: document.body.classList.contains('dark-mode'),
+                timerColor: document.getElementById('timerColor').value,
+                containerColor: document.getElementById('containerColor').value,
+                lapsContainerColor: document.getElementById('lapsContainerColor').value,
+                bgColor: document.getElementById('bgColor').value,
+                timerFontSize: document.getElementById('timerFontSize').value,
+                analogMode: isAnalogMode,
+                musicEnabled,
+                musicAlwaysOn,
+                musicSound: document.getElementById('musicSound').value,
+                musicVolume: document.getElementById('musicVolume').value,
+                panelVisible: document.querySelector('.sound-panel').style.display !== 'none'
+                ,
+                // title visibility persisted separately for quick toggle
+                inputTitleVisible: (function(){ const el = document.getElementById('inputTitle'); if (!el) return true; return window.getComputedStyle(el).display !== 'none'; })()
+                ,
+                tabBlinkEnabled: tabBlinkEnabled
+            };
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(data));
+        }
+
+        function loadSettings() {
+            const raw = localStorage.getItem(SETTINGS_KEY);
+            if (!raw) {
+                setDarkModeState(document.body.classList.contains('dark-mode'));
+                return;
+            }
+
+            try {
+                const data = JSON.parse(raw);
+
+                if (typeof data.darkMode === 'boolean') {
+                    setDarkModeState(data.darkMode);
+                } else {
+                    setDarkModeState(document.body.classList.contains('dark-mode'));
+                }
+
+                const savedTimerColor = data.timerColor || '';
+                const savedContainerColor = data.containerColor || '';
+                const savedLapsContainerColor = data.lapsContainerColor || '#fafafa';
+                const savedBgColor = data.bgColor || '';
+
+                const isLightDefaults =
+                    savedTimerColor === '#333333' &&
+                    savedContainerColor === '#ffffff' &&
+                    savedLapsContainerColor === '#fafafa' &&
+                    savedBgColor === '#667eea';
+
+                const isDarkDefaults =
+                    savedTimerColor === '#e0e0e0' &&
+                    savedContainerColor === '#1e1e2f' &&
+                    savedLapsContainerColor === '#2a2a3f' &&
+                    savedBgColor === '#0c1120';
+
+                // If stored colors represent a default palette, rebuild theme defaults
+                // so gradients and matching dark/light colors stay identical to before.
+                if (isLightDefaults || isDarkDefaults) {
+                    resetColors();
+                } else {
+                    if (data.timerColor) pickColor(data.timerColor);
+                    if (data.containerColor) pickContainerColor(data.containerColor);
+                    if (data.lapsContainerColor) pickLapsContainerColor(data.lapsContainerColor);
+                    if (data.bgColor) pickBgColor(data.bgColor);
+                }
+
+                if (data.timerFontSize) {
+                    document.getElementById('timerFontSize').value = data.timerFontSize;
+                    setTimerFontSize();
+                }
+
+                if (typeof data.analogMode === 'boolean') {
+                    isAnalogMode = data.analogMode;
+                }
+                applyAnalogMode();
+
+                if (typeof data.musicEnabled === 'boolean') musicEnabled = data.musicEnabled;
+                if (typeof data.musicAlwaysOn === 'boolean') musicAlwaysOn = data.musicAlwaysOn;
+                // If "music always on" is set in settings, ensure music is enabled as well
+                if (musicAlwaysOn && !musicEnabled) {
+                    musicEnabled = true;
+                }
+                document.getElementById('musicStatus').textContent = musicEnabled ? 'Ein' : 'Aus';
+                document.getElementById('musicAlwaysOnStatus').textContent = musicAlwaysOn ? 'Ein' : 'Aus';
+
+                const musicSelect = document.getElementById('musicSound');
+                if (data.musicSound && Array.from(musicSelect.options).some(o => o.value === data.musicSound)) {
+                    musicSelect.value = data.musicSound;
+                }
+                changeMusicSound();
+
+                if (data.musicVolume !== undefined) {
+                    document.getElementById('musicVolume').value = data.musicVolume;
+                }
+                document.getElementById('musicAudio').volume = document.getElementById('musicVolume').value;
+
+                if (musicEnabled && musicAlwaysOn && !isRunning) {
+                    document.getElementById('musicAudio').play().catch(() => {});
+                }
+
+                const panel = document.querySelector('.sound-panel');
+                panel.style.display = data.panelVisible ? 'block' : 'none';
+                // restore title visibility if stored in settings object or legacy key
+                try {
+                    const titleStored = (typeof data.inputTitleVisible !== 'undefined') ? (data.inputTitleVisible ? 'true' : 'false') : localStorage.getItem('inputTitleVisible');
+                    const titleEl = document.getElementById('inputTitle');
+                    if (titleStored !== null && titleEl) {
+                        titleEl.style.display = titleStored === 'true' ? 'block' : 'none';
+                    }
+                try {
+                    if (typeof data.tabBlinkEnabled === 'boolean') tabBlinkEnabled = data.tabBlinkEnabled;
+                    const tabBtn = document.getElementById('tabBlinkBtn');
+                    if (tabBtn) tabBtn.innerHTML = 'Anzeige im Tab: <span id="tabBlinkStatus">' + (tabBlinkEnabled ? 'Ein' : 'Aus') + '</span>';
+                } catch (e) {}
+                } catch (e) {}
+            } catch (error) {
+                setDarkModeState(document.body.classList.contains('dark-mode'));
+            }
+
+            // Restore stopwatch running state across sleep/reload
+            try {
+                const running = localStorage.getItem('stopwatchRunning');
+                const startTs = localStorage.getItem('stopwatchStartTimestamp');
+                const elapsedSaved = localStorage.getItem('stopwatchElapsedMs');
+                if (running === 'true' && startTs) {
+                    startTimestamp = Number(startTs);
+                    elapsedMilliseconds = Date.now() - startTimestamp;
+                    isRunning = true;
+                    interval = setInterval(() => { elapsedMilliseconds = Date.now() - startTimestamp; updateDisplay(); }, 50);
+                    updateControlButtons();
+                } else if (elapsedSaved) {
+                    elapsedMilliseconds = Number(elapsedSaved) || 0;
+                    updateDisplay();
+                }
+                // Restore saved laps
+                try {
+                    const rawLaps = localStorage.getItem(LAPS_KEY);
+                    if (rawLaps) {
+                        const arr = JSON.parse(rawLaps) || [];
+                        const lapsList = document.getElementById('lapsList');
+                        if (arr.length > 0 && lapsList) {
+                            // clear container then render stored laps (arr[0] is newest)
+                            lapsList.innerHTML = '';
+                            arr.forEach(item => {
+                                const lapItem = document.createElement('div');
+                                lapItem.className = 'lap-item';
+                                lapItem.dataset.lapMs = String(item.lapMs);
+                                lapItem.innerHTML = '<span>' + tl('lapLabel') + ' ' + item.num + '</span><span>' + formatElapsed(item.lapMs) + ' (' + formatElapsed(item.totalMs) + ')</span>';
+                                lapsList.appendChild(lapItem);
+                            });
+                            // ensure placeholder element exists (lapStopwatch expects it)
+                            let placeholder = document.getElementById('lapsEmpty');
+                            if (!placeholder) {
+                                placeholder = document.createElement('div');
+                                placeholder.id = 'lapsEmpty';
+                                placeholder.textContent = tl('noLaps');
+                                lapsList.appendChild(placeholder);
+                            }
+                            // set counters from stored data (arr[0] is newest)
+                            lapCounter = arr.length;
+                            lastLapMilliseconds = arr[0] ? Number(arr[0].totalMs) : 0;
+                            try { placeholder.style.display = 'none'; } catch (e) {}
+                            updateLapHighlights();
+                        }
+                    }
+                } catch (e) {}
+            } catch (e) {}
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            const secs = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('clock').textContent = hours + ':' + mins + ':' + secs;
+        }
+        initMusicHint();
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        function toggleSettingsPanel() {
+            const panel = document.querySelector('.sound-panel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                bringToFront(panel);
+            } else {
+                panel.style.display = 'none';
+            }
+            saveSettings();
+        }
+
+        function showProgramHelp() {
+            const overlay = document.getElementById('helpOverlay');
+            const title = document.getElementById('helpTitle');
+            const body = document.getElementById('helpBody');
+            title.textContent = tl('toolbarTitle').replace(/<br>/g, ' ');
+            body.innerHTML = '<section><h3>' + tl('helpUseTitle') + '</h3><ul><li>' + tl('helpUseItem1') + '</li><li>' + tl('helpUseItem2') + '</li><li>' + tl('helpUseItem3') + '</li><li>' + tl('helpUseItem4') + '</li><li>' + tl('helpUseItem5') + '</li></ul></section><section><h3>' + tl('helpFeaturesTitle') + '</h3><ul><li>' + tl('helpFeaturesItem1') + '</li><li>' + tl('helpFeaturesItem2') + '</li><li>' + tl('helpFeaturesItem3') + '</li><li>' + tl('helpFeaturesItem4') + '</li></ul></section><section><h3>' + tl('helpBrowserTitle') + '</h3><ul><li>' + tl('helpBrowserItem1') + '</li><li>' + tl('helpBrowserItem2') + '</li><li>' + tl('helpBrowserItem3') + '</li></ul></section>';
+            overlay.classList.add('visible');
+            overlay.setAttribute('aria-hidden', 'false');
+        }
+
+        function hideProgramHelp() {
+            const overlay = document.getElementById('helpOverlay');
+            overlay.classList.remove('visible');
+            overlay.setAttribute('aria-hidden', 'true');
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                hideProgramHelp();
+            }
+        });
+
+        function toggleInputs() {
+            const inputContainer = document.getElementById('inputContainer');
+            const toggleBtn = document.getElementById('toggleInputsBtn');
+            if (inputContainer.style.display === 'none') {
+                inputContainer.style.display = 'block';
+                bringToFront(inputContainer);
+                if (toggleBtn) toggleBtn.textContent = tl('hideInputs');
+            } else {
+                inputContainer.style.display = 'none';
+                if (toggleBtn) toggleBtn.textContent = tl('showInputs');
+            }
+        }
+
+        // Favicon Clock
+        (function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            
+            function updateFaviconClock() {
+                const now = new Date();
+                const isDark = document.body.classList.contains('dark-mode');
+                
+                // Background
+                ctx.fillStyle = isDark ? '#1e1e2f' : '#ffffff';
+                ctx.beginPath();
+                ctx.arc(32, 32, 32, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Border
+                ctx.strokeStyle = isDark ? '#4a5a9e' : '#667eea';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(32, 32, 30, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Hour markers
+                ctx.strokeStyle = isDark ? '#e0e0e0' : '#333333';
+                ctx.lineWidth = 1.5;
+                for (let i = 0; i < 12; i++) {
+                    const angle = (i * 30 - 90) * Math.PI / 180;
+                    const x1 = 32 + 24 * Math.cos(angle);
+                    const y1 = 32 + 24 * Math.sin(angle);
+                    const x2 = 32 + 28 * Math.cos(angle);
+                    const y2 = 32 + 28 * Math.sin(angle);
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                }
+                
+                // Hands
+                const hours = now.getHours() % 12;
+                const minutes = now.getMinutes();
+                const seconds = now.getSeconds();
+                
+                // Hour hand
+                const hourAngle = ((hours + minutes / 60) * 30 - 90) * Math.PI / 180;
+                ctx.strokeStyle = isDark ? '#e0e0e0' : '#333333';
+                ctx.lineWidth = 5;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(32, 32);
+                ctx.lineTo(32 + 16 * Math.cos(hourAngle), 32 + 16 * Math.sin(hourAngle));
+                ctx.stroke();
+                
+                // Minute hand
+                const minuteAngle = ((minutes + seconds / 60) * 6 - 90) * Math.PI / 180;
+                ctx.strokeStyle = isDark ? '#e0e0e0' : '#333333';
+                ctx.lineWidth = 3.5;
+                ctx.beginPath();
+                ctx.moveTo(32, 32);
+                ctx.lineTo(32 + 22 * Math.cos(minuteAngle), 32 + 22 * Math.sin(minuteAngle));
+                ctx.stroke();
+                
+                // Second hand
+                const secondAngle = (seconds * 6 - 90) * Math.PI / 180;
+                ctx.strokeStyle = '#ff0000';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(32, 32);
+                ctx.lineTo(32 + 24 * Math.cos(secondAngle), 32 + 24 * Math.sin(secondAngle));
+                ctx.stroke();
+                
+                // Center dot
+                ctx.fillStyle = isDark ? '#4a5a9e' : '#667eea';
+                ctx.beginPath();
+                ctx.arc(32, 32, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Update favicon
+                let link = document.getElementById('favicon');
+                if (!link) {
+                    link = document.createElement('link');
+                    link.id = 'favicon';
+                    link.rel = 'icon';
+                    link.type = 'image/png';
+                    document.head.appendChild(link);
+                }
+                link.href = canvas.toDataURL('image/png');
+            }
+            
+            updateFaviconClock();
+            setInterval(updateFaviconClock, 1000);
+        })();
+    </script>
+</body>
+</html>
